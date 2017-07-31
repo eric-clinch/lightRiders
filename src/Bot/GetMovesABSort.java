@@ -26,19 +26,19 @@ public class GetMovesABSort implements GetMoves{
 		}
 	}
 	
-	private class AscendingSorter implements Comparator<Edge>{		
+	private class DescendingSorter implements Comparator<Edge>{		
 		public int compare(Edge edge1, Edge edge2){
 			return edge2.evaluation - edge1.evaluation;
 		}
 	}
 	
-	private class DescendingSorter implements Comparator<Edge>{		
+	private class AscendingSorter implements Comparator<Edge>{		
 		public int compare(Edge edge1, Edge edge2){
 			return edge1.evaluation - edge2.evaluation;
 		}
 	}
 	
-	public void ascendingSort(Move[] moves, Board board){
+	public void descendingSort(Move[] moves, Board board){
 		Edge[] edges = new Edge[moves.length];
 		
 		for(int i = 0; i < moves.length; i++){
@@ -48,13 +48,13 @@ public class GetMovesABSort implements GetMoves{
 			board.undoPlayerMove(move);
 		}
 		
-		Arrays.sort(edges, ascendingSorter);
+		Arrays.sort(edges, descendingSorter);
 		for(int i = 0; i < moves.length; i++){
 			moves[i] = edges[i].move;
 		}
 	}
 	
-	public void descendingSort(Move[] moves, Board board){
+	public void ascendingSort(Move[] moves, Board board){
 		Edge[] edges = new Edge[moves.length];
 		
 		for(int i = 0; i < moves.length; i++){
@@ -64,7 +64,7 @@ public class GetMovesABSort implements GetMoves{
 			board.undoOpponentMove(move);
 		}
 		
-		Arrays.sort(edges, descendingSorter);
+		Arrays.sort(edges, ascendingSorter);
 		for(int i = 0; i < moves.length; i++){
 			moves[i] = edges[i].move;
 		}
@@ -118,7 +118,7 @@ public class GetMovesABSort implements GetMoves{
 		else{
 			pathEvaluation maxVal = new pathEvaluation(Integer.MIN_VALUE, recursions);
 			Move[] legalMoves = board.getLegalMovesForPlayer();
-			if(recursions > sortThreshold) ascendingSort(legalMoves, board);
+			if(recursions > sortThreshold) descendingSort(legalMoves, board);
 			for(Move move : legalMoves){
 				board.makePlayerMove(move);
 				pathEvaluation moveEvaluation = opponentEvaluate(board, eval, recursions - 1, sortThreshold, alpha, beta);
@@ -137,7 +137,7 @@ public class GetMovesABSort implements GetMoves{
 		else{
 			pathEvaluation minVal = new pathEvaluation(Integer.MAX_VALUE, recursions);
 			Move[] legalMoves = board.getLegalMovesForOpponent();
-			if(recursions > sortThreshold) descendingSort(legalMoves, board);
+			if(recursions > sortThreshold) ascendingSort(legalMoves, board);
 			for(Move move : legalMoves){
 				board.makeOpponentMove(move);
 				pathEvaluation moveEvaluation = playerEvaluate(board, eval, recursions - 1, sortThreshold, alpha, beta);
@@ -214,7 +214,7 @@ public class GetMovesABSort implements GetMoves{
 		}
 	}
 	
-	public Stack<Move> getPlayerMoves(Board board, int time, int round){
+	public Stack<Move> getPlayerMoves(Board board, int time, int round, Move lastOpponentMove){
 		System.err.print("round " + round + " ");
 		Move bestMove;
 		
@@ -224,7 +224,7 @@ public class GetMovesABSort implements GetMoves{
 				System.err.println("backtrack filling with depth " + Integer.toString(floodFillResult));
 				return backtrackFill(board, floodFillResult);
 			}
-			int fillRecursions = 15;
+			int fillRecursions = 12;
 			System.err.println("filling with depth " + Integer.toString(fillRecursions));
 			bestMove = getBestMoveFill(board, fillRecursions);
 		}
@@ -240,7 +240,7 @@ public class GetMovesABSort implements GetMoves{
 			pathEvaluation maxVal = new pathEvaluation(Integer.MIN_VALUE, recursions);
 			
 			Move[] legalMoves = board.getLegalMovesForPlayer();
-			ascendingSort(legalMoves, board);
+			descendingSort(legalMoves, board);
 			
 			bestMove = Move.UP; //default move
 			for(Move move : legalMoves){
@@ -256,6 +256,8 @@ public class GetMovesABSort implements GetMoves{
 				}
 			}
 		}
+		
+		System.err.println(Runtime.getRuntime().freeMemory() / 1048576.0);
 		
 		Stack<Move> s = new Stack<>();
 		s.addElement(bestMove);

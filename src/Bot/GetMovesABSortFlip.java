@@ -233,7 +233,7 @@ public class GetMovesABSortFlip implements GetMoves{
 		}
 	}
 	
-	public Stack<Move> getPlayerMoves(Board board, int time, int round){
+	public Stack<Move> getPlayerMoves(Board board, int time, int round, Move lastOpponentMove){
 		System.err.print("round " + round + " ");
 		Move bestMove;
 		
