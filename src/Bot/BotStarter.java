@@ -11,12 +11,30 @@ public class BotStarter {
 		else return "invalid move";
 	}
 	
-	public static void makeMove(Bot bot, Board board, int time, int round){
+	public static void makeMove(Bot bot, Board board, int time, int round, Move lastPlayerMove){
 		long t0 = System.currentTimeMillis();
-		Move move = bot.getMove(board, time, round);
+		Move move = bot.getMove(board, time, round, lastPlayerMove);
 		double elapsed = (System.currentTimeMillis() - t0) / (double) 1000;
 		System.err.println(elapsed);
 		System.out.println(MoveToStr(move));
+	}
+	
+	public static Move getLastOpponentMove(Board board, Board newBoard){
+		Move res;
+		if(board == null) return Move.UP;
+		Location opponentLocation = board.getOpponentLocation();
+		Location newOpponentLocation = newBoard.getOpponentLocation();
+		int drow = newOpponentLocation.row - opponentLocation.col;
+		int dcol = newOpponentLocation.col - opponentLocation.col;
+		if(drow == 0){
+			if(dcol == 1) res = Move.RIGHT;
+			else res = Move.LEFT;
+		} else {
+			if(drow == 1) res = Move.DOWN;
+			else res = Move.UP;
+		}
+		System.err.println("last opponent move: " + MoveToStr(res));
+		return res;
 	}
 	
 	public void run(){
@@ -32,6 +50,7 @@ public class BotStarter {
 		int cols = -1;
 		int round = -1;
 		Board board = null;
+		Move lastOpponentMove = null;
 		
 		Scanner scan = new Scanner(System.in);
 		
@@ -60,12 +79,16 @@ public class BotStarter {
 				if(key1.equals("game")){
 					String key2 = tokens[2];
 					if(key2.equals("round")) round = Integer.valueOf(tokens[3]);
-					else if(key2.equals("field")) board = new PieceBoard(tokens[3], rows, cols, my_botid, opponent_botid);
+					else if(key2.equals("field")){
+						Board newBoard = new PieceBoard(tokens[3], rows, cols, my_botid, opponent_botid);
+						lastOpponentMove = getLastOpponentMove(board, newBoard);
+						board = newBoard;
+					}
 				}
 			}
 			else if(key0.equals("action") && tokens[1].equals("move")){
 				timebank = Integer.valueOf(tokens[2]);
-				makeMove(bot, board, timebank, round);
+				makeMove(bot, board, timebank, round, lastOpponentMove);
 			}
 		}
 	}

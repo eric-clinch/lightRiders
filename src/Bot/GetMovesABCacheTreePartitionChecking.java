@@ -5,23 +5,23 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Stack;
 
-public class GetMovesABCacheTree3 implements GetMoves{
+public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 	
 	private Evaluator evaluator;
 	private GetSearchNumber getSearchDepth;
-	private AscendingSorter ascendingSorter = new AscendingSorter();
-	private DescendingSorter descendingSorter = new DescendingSorter();
+//	private AscendingSorter ascendingSorter = new AscendingSorter();
+//	private DescendingSorter descendingSorter = new DescendingSorter();
 	private boolean partitioned;
 	private int partitionSpace;
 	private int sortThreshold;
 	public CacheTree currentTree;
 	
-	public GetMovesABCacheTree3(Evaluator evaluator, GetSearchNumber getSearchDepth){
+	public GetMovesABCacheTreePartitionChecking(Evaluator evaluator, GetSearchNumber getSearchDepth){
 		this.evaluator = evaluator;
 		this.getSearchDepth = getSearchDepth;
 		this.partitioned = false;
 		this.partitionSpace = -1;
-		this.sortThreshold = 4;
+		this.sortThreshold = 3;
 		this.currentTree = null;
 	}
 	
@@ -48,10 +48,12 @@ public class GetMovesABCacheTree3 implements GetMoves{
 	
 	private class CacheTree {
 		public boolean partitioned;
+		public int depth;
 		public CacheTreeChild[] children;
 		
-		public CacheTree(boolean partitioned, CacheTreeChild[] children) {
+		public CacheTree(boolean partitioned, int depth, CacheTreeChild[] children) {
 			this.partitioned = partitioned;
+			this.depth = depth;
 			this.children = children;
 		}
 		
@@ -64,37 +66,49 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		}
 	}
 	
-	private class DescendingSorter implements Comparator<CacheTreeEdge>{		
-		public int compare(CacheTreeEdge edge1, CacheTreeEdge edge2){
-			return edge2.evaluation.compare(edge1.evaluation);
-		}
-	}
-	
-	private class AscendingSorter implements Comparator<CacheTreeEdge>{		
-		public int compare(CacheTreeEdge edge1, CacheTreeEdge edge2){
-			return edge1.evaluation.compare(edge2.evaluation);
-		}
-	}
-	
-	public CacheTreeChild[] descendingSort(CacheTreeEdge[] edges){
-		Arrays.sort(edges, descendingSorter);
-		int len = edges.length;
-		CacheTreeChild[] res = new CacheTreeChild[len];
-		for(int i = 0; i < len; i++){
-			res[i] = edges[i].cacheTreeChild;
-		}
-		return res;
-	}
-	
-	public CacheTreeChild[] ascendingSort(CacheTreeEdge[] edges){
-		Arrays.sort(edges, ascendingSorter);
-		int len = edges.length;
-		CacheTreeChild[] res = new CacheTreeChild[len];
-		for(int i = 0; i < len; i++){
-			res[i] = edges[i].cacheTreeChild;
-		}
-		return res;
-	}
+//	private class DescendingSorter implements Comparator<Edge>{		
+//		public int compare(Edge edge1, Edge edge2){
+//			return edge2.evaluation - edge1.evaluation;
+//		}
+//	}
+//	
+//	private class AscendingSorter implements Comparator<Edge>{		
+//		public int compare(Edge edge1, Edge edge2){
+//			return edge1.evaluation - edge2.evaluation;
+//		}
+//	}
+//	
+//	public void descendingSort(Move[] moves, Board board){
+//		Edge[] edges = new Edge[moves.length];
+//		
+//		for(int i = 0; i < moves.length; i++){
+//			Move move = moves[i];
+//			board.makePlayerMove(move);
+//			edges[i] = new Edge(move, evaluator.evaluate(board));
+//			board.undoPlayerMove(move);
+//		}
+//		
+//		Arrays.sort(edges, descendingSorter);
+//		for(int i = 0; i < moves.length; i++){
+//			moves[i] = edges[i].move;
+//		}
+//	}
+//	
+//	public void ascendingSort(Move[] moves, Board board){
+//		Edge[] edges = new Edge[moves.length];
+//		
+//		for(int i = 0; i < moves.length; i++){
+//			Move move = moves[i];
+//			board.makeOpponentMove(move);
+//			edges[i] = new Edge(move, evaluator.evaluate(board));
+//			board.undoOpponentMove(move);
+//		}
+//		
+//		Arrays.sort(edges, ascendingSorter);
+//		for(int i = 0; i < moves.length; i++){
+//			moves[i] = edges[i].move;
+//		}
+//	}
 	
 	private int floodFillHelper(Board board, Location location){
 		int res = 0;
@@ -150,15 +164,10 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		if(depth == maxDepth || thisTree.partitioned) return new PathEvaluation(evaluator.evaluate(board), depth);
 		
 		PathEvaluation maxVal = new PathEvaluation(Integer.MIN_VALUE, depth);
-		CacheTreeEdge[] edges = null;
-		boolean shouldSort = depth == sortThreshold || depth == sortThreshold - 1;
-		
 		if(thisTree.children == null){
 			Move[] legalMoves = board.getLegalMovesForPlayer();
 			int legalMovesLength = legalMoves.length;
 			CacheTreeChild[] children = new CacheTreeChild[legalMovesLength];
-			if(shouldSort) edges = new CacheTreeEdge[legalMovesLength];
-			
 			for(int i = 0; i < legalMovesLength; i++){
 				Move move = legalMoves[i];
 				board.makePlayerMove(move);
@@ -166,7 +175,6 @@ public class GetMovesABCacheTree3 implements GetMoves{
 				board.undoPlayerMove(move);
 				
 				PathEvaluation moveEvaluation = edge.evaluation;
-				if(shouldSort) edges[i] = edge;
 				children[i] = edge.cacheTreeChild;
 				if(maxVal.compare(moveEvaluation) < 0){
 					maxVal = moveEvaluation;
@@ -174,7 +182,6 @@ public class GetMovesABCacheTree3 implements GetMoves{
 						alpha = maxVal;
 						if(beta.compare(alpha) <= 0){
 							for(int j = i + 1; j < legalMovesLength; j++) children[j] = new CacheTreeChild(legalMoves[j], null);
-							if(shouldSort) for(int j = i + 1; j < legalMovesLength; j++) edges[j] = new CacheTreeEdge(children[j], new PathEvaluation(Integer.MIN_VALUE, depth));
 							break; // prune
 						}
 					}
@@ -184,7 +191,6 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		} else {
 			CacheTreeChild[] children = thisTree.children;
 			int numChildren = thisTree.children.length;
-			if(shouldSort) edges = new CacheTreeEdge[numChildren];
 			for(int i = 0; i < numChildren; i++){
 				CacheTreeChild child = children[i];
 				Move move = child.move;
@@ -194,31 +200,24 @@ public class GetMovesABCacheTree3 implements GetMoves{
 					board.makePlayerMove(move);
 					CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move);
 					board.undoPlayerMove(move);
-					
-					moveEvaluation = edge.evaluation;
 					child.cacheTree = edge.cacheTreeChild.cacheTree;
-					if(shouldSort) edges[i] = edge;
+					moveEvaluation = edge.evaluation;
 				} else{
-					assert(child.cacheTree != null);
 					board.makePlayerMove(move);
+					assert(child.cacheTree != null);
 					moveEvaluation = opponentEvaluation(board, child.cacheTree, depth + 1, maxDepth, alpha, beta);
 					board.undoPlayerMove(move);
-					if(shouldSort) edges[i] = new CacheTreeEdge(child, moveEvaluation);
 				}
 				
 				if(maxVal.compare(moveEvaluation) < 0){
 					maxVal = moveEvaluation;
 					if(alpha.compare(maxVal) < 0){
 						alpha = maxVal;
-						if(beta.compare(alpha) <= 0) {
-							if(shouldSort) for(int j = i + 1; j < numChildren; j++) edges[j] = new CacheTreeEdge(children[j], new PathEvaluation(Integer.MIN_VALUE, depth));
-							break; // prune
-						}
+						if(beta.compare(alpha) <= 0) break; // prune
 					}
 				}
 			}
 		}
-		if(shouldSort) thisTree.children = descendingSort(edges);
 		return maxVal;
 	}
 	
@@ -228,13 +227,9 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		if(depth == maxDepth || thisTree.partitioned) return new PathEvaluation(evaluator.evaluate(board), depth);
 		
 		PathEvaluation minVal = new PathEvaluation(Integer.MAX_VALUE, depth);
-		CacheTreeEdge[] edges = null;
-		boolean shouldSort = depth == sortThreshold || depth == sortThreshold - 1;
-		
 		if(thisTree.children == null){
 			Move[] legalMoves = board.getLegalMovesForOpponent();
 			int legalMovesLength = legalMoves.length;
-			if(shouldSort) edges = new CacheTreeEdge[legalMovesLength];
 			CacheTreeChild[] children = new CacheTreeChild[legalMovesLength];
 			for(int i = 0; i < legalMovesLength; i++){
 				Move move = legalMoves[i];
@@ -244,14 +239,12 @@ public class GetMovesABCacheTree3 implements GetMoves{
 				
 				PathEvaluation moveEvaluation = edge.evaluation;
 				children[i] = edge.cacheTreeChild;
-				if(shouldSort) edges[i] = edge;
 				if(minVal.compare(moveEvaluation) > 0){
 					minVal = moveEvaluation;
 					if(beta.compare(minVal) > 0){
 						beta = minVal;
 						if(beta.compare(alpha) <= 0){
 							for(int j = i + 1; j < legalMovesLength; j++) children[j] = new CacheTreeChild(legalMoves[j], null);
-							if(shouldSort) for(int j = i + 1; j < legalMovesLength; j++) edges[j] = new CacheTreeEdge(children[j], new PathEvaluation(Integer.MAX_VALUE, depth));
 							break; // prune
 						}
 					}
@@ -261,8 +254,6 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		} else {
 			CacheTreeChild[] children = thisTree.children;
 			int numChildren = thisTree.children.length;
-			if(shouldSort) edges = new CacheTreeEdge[numChildren];
-			
 			for(int i = 0; i < numChildren; i++){
 				CacheTreeChild child = children[i];
 				Move move = child.move;
@@ -272,31 +263,24 @@ public class GetMovesABCacheTree3 implements GetMoves{
 					board.makeOpponentMove(move);
 					CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move);
 					board.undoOpponentMove(move);
-					
 					child.cacheTree = edge.cacheTreeChild.cacheTree;
 					moveEvaluation = edge.evaluation;
-					if(shouldSort) edges[i] = edge;
 				} else{
 					board.makeOpponentMove(move);
 					assert(child.cacheTree != null);
 					moveEvaluation = playerEvaluation(board, child.cacheTree, depth + 1, maxDepth, alpha, beta);
 					board.undoOpponentMove(move);
-					if(shouldSort) edges[i] = new CacheTreeEdge(child, moveEvaluation);
 				}
 				
 				if(minVal.compare(moveEvaluation) > 0){
 					minVal = moveEvaluation;
 					if(beta.compare(minVal) > 0){
 						beta = minVal;
-						if(beta.compare(alpha) <= 0) {
-							if(shouldSort) for(int j = i + 1; j < numChildren; j++) edges[j] = new CacheTreeEdge(children[j], new PathEvaluation(Integer.MIN_VALUE, depth));
-							break; // prune
-						}
+						if(beta.compare(alpha) <= 0) break; // prune
 					}
 				}
 			}
 		}
-		if(shouldSort) thisTree.children = ascendingSort(edges);
 		return minVal;
 	}
 	
@@ -304,7 +288,7 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		assert(depth % 2 == 0);
 		boolean partitioned = floodFill(board) != -1;
 		if(depth == maxDepth || partitioned){
-			CacheTree tree = new CacheTree(partitioned, null);
+			CacheTree tree = new CacheTree(partitioned, depth, null);
 			CacheTreeChild child = new CacheTreeChild(lastMove, tree);
 			PathEvaluation evaluation = new PathEvaluation(evaluator.evaluate(board), depth);
 			return new CacheTreeEdge(child, evaluation); 
@@ -334,7 +318,7 @@ public class GetMovesABCacheTree3 implements GetMoves{
 			}
 		}
 		for(CacheTreeChild c : children) assert(c.move != null);
-		CacheTree tree = new CacheTree(partitioned, children);
+		CacheTree tree = new CacheTree(partitioned, depth, children);
 		CacheTreeChild child = new CacheTreeChild(lastMove, tree);
 		return new CacheTreeEdge(child, maxVal); 
 	}
@@ -343,7 +327,7 @@ public class GetMovesABCacheTree3 implements GetMoves{
 		assert(depth % 2 == 1);
 		boolean partitioned = floodFill(board) != -1;
 		if(depth == maxDepth || partitioned){
-			CacheTree tree = new CacheTree(partitioned, null);
+			CacheTree tree = new CacheTree(partitioned, depth, null);
 			CacheTreeChild child = new CacheTreeChild(lastMove, tree);
 			PathEvaluation evaluation = new PathEvaluation(evaluator.evaluate(board), depth);
 			return new CacheTreeEdge(child, evaluation); 
@@ -373,7 +357,7 @@ public class GetMovesABCacheTree3 implements GetMoves{
 			}
 		}
 		for(CacheTreeChild c : children) assert(c.move != null);
-		CacheTree tree = new CacheTree(partitioned, children);
+		CacheTree tree = new CacheTree(partitioned, depth, children);
 		CacheTreeChild child = new CacheTreeChild(lastMove, tree);
 		return new CacheTreeEdge(child, minVal); 
 	}

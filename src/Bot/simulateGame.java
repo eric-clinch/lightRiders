@@ -158,16 +158,26 @@ public class simulateGame {
 		int gamesTimedOutByBot1 = 0;
 		int gamesTied = 0;
 		for(int i = 0; i < gamesToPlay; i++){
-			Bot bot0 = new Bot((GetMoves) new GetMovesABSort((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-			Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTree3((Evaluator) new ChamberEvaluator(), new bot0Depth()));
+			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTree((Evaluator) new ChamberEvaluator(), new bot0Depth()));
+			Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTree2((Evaluator) new ChamberEvaluator(), new bot0Depth()));
 			
-			simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
-			
-			if(res.winner == -1) gamesTied++;
-			else if(res.winner == 1) gamesWonByBot1++;
-			else gamesWonByBot0++;
-			if(res.bot0TimedOut) gamesTimedOutByBot0++;
-			if(res.bot1TimedOut) gamesTimedOutByBot1++;
+			if(i % 2 == 0){
+				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
+				
+				if(res.winner == -1) gamesTied++;
+				else if(res.winner == 1) gamesWonByBot1++;
+				else gamesWonByBot0++;
+				if(res.bot0TimedOut) gamesTimedOutByBot0++;
+				if(res.bot1TimedOut) gamesTimedOutByBot1++;
+			} else {
+				simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
+				
+				if(res.winner == -1) gamesTied++;
+				else if(res.winner == 0) gamesWonByBot1++;
+				else gamesWonByBot0++;
+				if(res.bot0TimedOut) gamesTimedOutByBot1++;
+				if(res.bot1TimedOut) gamesTimedOutByBot0++;
+			}
 		}
 		System.out.println("Games played: " + gamesToPlay);
 		System.out.println("Games won by bot 0: " + gamesWonByBot0);
