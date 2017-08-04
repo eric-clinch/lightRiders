@@ -176,6 +176,12 @@ public class PieceBoard implements Board{
 		return board[row][col] == Piece.FLOODED;
 	}
 	
+	public int isAvailable(int row, int col){
+		return (row >= 0 && row < rows &&
+				col >= 0 && col < cols &&
+				board[row][col] == Piece.EMPTY) ? 1 : 0;
+	}
+	
 	public PieceBoard deepcopy(){
 		final Piece[][] result = new Piece[board.length][];
 		for(int i = 0; i < board.length; i++){

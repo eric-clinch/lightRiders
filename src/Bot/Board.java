@@ -16,6 +16,7 @@ public interface Board {
 	public boolean floodable(int row, int col);
 	public void placeFlood(int row, int col);
 	public boolean isFlooded(int row, int col);
+	public int isAvailable(int row, int col);
 	public Board deepcopy();
 	public String toString();
 	public Board toOpponentBoard();

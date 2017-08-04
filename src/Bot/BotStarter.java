@@ -24,7 +24,7 @@ public class BotStarter {
 		if(board == null) return Move.UP;
 		Location opponentLocation = board.getOpponentLocation();
 		Location newOpponentLocation = newBoard.getOpponentLocation();
-		int drow = newOpponentLocation.row - opponentLocation.col;
+		int drow = newOpponentLocation.row - opponentLocation.row;
 		int dcol = newOpponentLocation.col - opponentLocation.col;
 		if(drow == 0){
 			if(dcol == 1) res = Move.RIGHT;
@@ -38,7 +38,7 @@ public class BotStarter {
 	}
 	
 	public void run(){
-		Bot bot = new Bot((GetMoves) new GetMovesABSort((Evaluator) new ChamberEvaluator(), new botDepth()));
+		Bot bot = new Bot((GetMoves) new GetMovesABCacheTree((Evaluator) new ChamberEvaluator(), new botDepth()));
 		
 		int timebank = 0;
 		int time_per_move = 0;

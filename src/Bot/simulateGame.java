@@ -116,26 +116,63 @@ public class simulateGame {
 	}
 	
 	public static void main(String[] args){
-//		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTree3((Evaluator) new ChamberEvaluator(), new constantBotDepth(5)));
-//		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTree2((Evaluator) new ChamberEvaluator(), new constantBotDepth(5)));
+//		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTree2((Evaluator) new ChamberEvaluator(), new bot0Depth()));
+//		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreePrune((Evaluator) new ChamberEvaluator(), new bot0Depth(), 100));
 //		
 //		simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
 //		ArrayList<Board> boards = res.boards;
 //		
 //		printBoards(boards);
 		
-//		ArrayList<tournamentResult> results = new ArrayList<tournamentResult>();
-//		for(int threshold = 160; threshold <= 270; threshold += 10){
-//			int gamesToPlay = 150;
-//			int gamesWonByBot1 = 0;
-//			int gamesWonByBot0 = 0;
-//			int gamesTied = 0;
-//			int gamesTimedOutByBot0 = 0;
-//			int gamesTimedOutByBot1 = 0;
-//			for(int i = 0; i < gamesToPlay; i++){
-//				Bot bot0 = new Bot((GetMoves) new GetMovesABSort((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-//				Bot bot1 = new Bot((GetMoves) new GetMovesABSort((Evaluator) new ChamberEvaluator(), new adaptiveBotDepth(threshold)));
-//				
+		ArrayList<tournamentResult> results = new ArrayList<tournamentResult>();
+		for(int i = 0; i * i <= 270; i++){
+			int threshold = i * i;
+			int gamesToPlay = 1;
+			int gamesWonByBot1 = 0;
+			int gamesWonByBot0 = 0;
+			int gamesTied = 0;
+			int gamesTimedOutByBot0 = 0;
+			int gamesTimedOutByBot1 = 0;
+			for(int round = 0; round < gamesToPlay; round++){
+				Bot bot0 = new Bot((GetMoves) new GetMovesABSort((Evaluator) new ChamberEvaluator(), new bot0Depth()));
+				Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreePrune((Evaluator) new ChamberEvaluator(), new bot0Depth(), threshold));
+				
+				if(round % 2 == 0){
+					simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
+					
+					if(res.winner == -1) gamesTied++;
+					else if(res.winner == 1) gamesWonByBot1++;
+					else gamesWonByBot0++;
+					if(res.bot0TimedOut) gamesTimedOutByBot0++;
+					if(res.bot1TimedOut) gamesTimedOutByBot1++;
+				} else {
+					simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
+					
+					if(res.winner == -1) gamesTied++;
+					else if(res.winner == 0) gamesWonByBot1++;
+					else gamesWonByBot0++;
+					if(res.bot0TimedOut) gamesTimedOutByBot1++;
+					if(res.bot1TimedOut) gamesTimedOutByBot0++;
+				}
+			}
+			tournamentResult tres = new tournamentResult(gamesToPlay, gamesWonByBot0, gamesWonByBot1, gamesTimedOutByBot0, gamesTimedOutByBot1, gamesTied, threshold);
+			results.add(tres);
+		}
+		for(tournamentResult tres : results){
+			System.out.println("Games played: " + tres.gamesPlayed + " bot 0: " + tres.gamesWonByPlayer0 + " bot 0 timeouts: " + tres.gamesTimedOutByPlayer0 + " bot 1: " + tres.gamesWonByPlayer1 + " bot 1 timeouts: " + tres.gamesTimedOutByPlayer1 + " tied: " + tres.gamesTied + " threshold: " + tres.parameter);;
+		}
+		
+//		int gamesToPlay = 100;
+//		int gamesWonByBot0 = 0;
+//		int gamesWonByBot1 = 0;
+//		int gamesTimedOutByBot0 = 0;
+//		int gamesTimedOutByBot1 = 0;
+//		int gamesTied = 0;
+//		for(int i = 0; i < gamesToPlay; i++){
+//			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTree2((Evaluator) new ChamberEvaluator(), new bot0Depth()));
+//			Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreePrune((Evaluator) new ChamberEvaluator(), new bot0Depth(), 0));
+//			
+//			if(i % 2 == 0){
 //				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
 //				
 //				if(res.winner == -1) gamesTied++;
@@ -143,48 +180,22 @@ public class simulateGame {
 //				else gamesWonByBot0++;
 //				if(res.bot0TimedOut) gamesTimedOutByBot0++;
 //				if(res.bot1TimedOut) gamesTimedOutByBot1++;
+//			} else {
+//				simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
+//				
+//				if(res.winner == -1) gamesTied++;
+//				else if(res.winner == 0) gamesWonByBot1++;
+//				else gamesWonByBot0++;
+//				if(res.bot0TimedOut) gamesTimedOutByBot1++;
+//				if(res.bot1TimedOut) gamesTimedOutByBot0++;
 //			}
-//			tournamentResult tres = new tournamentResult(gamesToPlay, gamesWonByBot0, gamesWonByBot1, gamesTimedOutByBot0, gamesTimedOutByBot1, gamesTied, threshold);
-//			results.add(tres);
 //		}
-//		for(tournamentResult tres : results){
-//			System.out.println("Games played: " + tres.gamesPlayed + " bot 0: " + tres.gamesWonByPlayer0 + " bot 0 timeouts: " + tres.gamesTimedOutByPlayer0 + " bot 1: " + tres.gamesWonByPlayer1 + " bot 1 timeouts: " + tres.gamesTimedOutByPlayer1 + " tied: " + tres.gamesTied + " threshold: " + tres.parameter);;
-//		}
-		
-		int gamesToPlay = 300;
-		int gamesWonByBot0 = 0;
-		int gamesWonByBot1 = 0;
-		int gamesTimedOutByBot0 = 0;
-		int gamesTimedOutByBot1 = 0;
-		int gamesTied = 0;
-		for(int i = 0; i < gamesToPlay; i++){
-			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTree((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-			Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTree2((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-			
-			if(i % 2 == 0){
-				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
-				
-				if(res.winner == -1) gamesTied++;
-				else if(res.winner == 1) gamesWonByBot1++;
-				else gamesWonByBot0++;
-				if(res.bot0TimedOut) gamesTimedOutByBot0++;
-				if(res.bot1TimedOut) gamesTimedOutByBot1++;
-			} else {
-				simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
-				
-				if(res.winner == -1) gamesTied++;
-				else if(res.winner == 0) gamesWonByBot1++;
-				else gamesWonByBot0++;
-				if(res.bot0TimedOut) gamesTimedOutByBot1++;
-				if(res.bot1TimedOut) gamesTimedOutByBot0++;
-			}
-		}
-		System.out.println("Games played: " + gamesToPlay);
-		System.out.println("Games won by bot 0: " + gamesWonByBot0);
-		System.out.println("Games timed out by bot 0: " + gamesTimedOutByBot0);
-		System.out.println("Games won by bot 1: " + gamesWonByBot1);
-		System.out.println("Games timed out by bot 1: " + gamesTimedOutByBot1);
-		System.out.println("Games tied: " + gamesTied);
+//		System.out.println("Games played: " + gamesToPlay);
+//		System.out.println("Games won by bot 0: " + gamesWonByBot0);
+//		System.out.println("Games timed out by bot 0: " + gamesTimedOutByBot0);
+//		System.out.println("Games won by bot 1: " + gamesWonByBot1);
+//		System.out.println("Games timed out by bot 1: " + gamesTimedOutByBot1);
+//		System.out.println("Games tied: " + gamesTied);
 	}
 	
 	private static class tournamentResult {
