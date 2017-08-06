@@ -186,6 +186,14 @@ public class FloodEvaluator implements Evaluator {
 		return res;
 	}
 	
+	public int getMaxValue(){
+		return 256;
+	}
+	
+	public int getPartitionedOffset(){
+		return 512;
+	}
+	
 	public int evaluate(Board board){
 		int res = floodFillPlayer(board);
 		if(res == -1) return 0;

@@ -147,7 +147,6 @@ public class GetMovesABCacheTreePrune implements GetMoves{
 		res.add(bestEdge.cacheTreeChild);
 		for(int i = 1; i < len; i++){
 			CacheTreeEdge currentEdge = edges[i];
-			System.out.println("difference: " + (bestEval - currentEdge.evaluation.evaluation));
 			if(bestEval - currentEdge.evaluation.evaluation <= pruneThreshold) res.add(currentEdge.cacheTreeChild); 
 			else break;
 		}
@@ -608,8 +607,6 @@ public class GetMovesABCacheTreePrune implements GetMoves{
 				currentTree = bestSubtree;
 			}
 		}
-		
-		System.err.println(Runtime.getRuntime().freeMemory() / 1048576.0);
 		
 		Stack<Move> s = new Stack<>();
 		s.addElement(bestMove);

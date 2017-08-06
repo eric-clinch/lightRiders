@@ -6,6 +6,14 @@ public class ChamberEvaluator implements Evaluator {
 	
 	private static int cols = Board.cols;
 	
+	public int getMaxValue(){
+		return 256;
+	}
+	
+	public int getPartitionedOffset(){
+		return 512;
+	}
+	
 	public static String getCellSizeStr(Cell cell){
 //		String res = String.valueOf(cell.chamberSize);
 //		while(res.length() < 3) res = "_" + res;
@@ -40,7 +48,7 @@ public class ChamberEvaluator implements Evaluator {
 		System.out.println("\n\n");
 	}
 		
-	private class CellsAvailable {
+	public class CellsAvailable {
 		public ArrayList<Cell> expandingCells;
 		public ArrayList<Move> articulationMoves;
 		public ArrayList<Move> controlledMoves;
@@ -75,7 +83,7 @@ public class ChamberEvaluator implements Evaluator {
 		}
 	}
 	
-	public int countHelper(Cell cell, Cell[] board, ArrayList<Cell> articulationPoints){
+	private int countHelper(Cell cell, Cell[] board, ArrayList<Cell> articulationPoints){
 		cell.visited = true;
 		int result = 1;
 		ArrayList<Move> searchMoves = cell.searchMoves;
@@ -148,68 +156,71 @@ public class ChamberEvaluator implements Evaluator {
 		
 	public int evaluate(Board board){
 		Cell[] cellBoard = board.getCellBoard();
+		Cell[] cellQueue = new Cell[board.rows * board.cols];
 		
-		ArrayList<Cell> currentPlayerLayer = new ArrayList<Cell>();
 		Location playerLocation = board.getPlayerLocation();
 		int playerRow = playerLocation.row;
 		int playerCol = playerLocation.col;
 		Cell playerCell = cellBoard[playerRow * cols + playerCol]; //board access
 		playerCell.cellType = CellType.PLAYER;
-		currentPlayerLayer.add(playerCell);
+		int playerQueueStart = 0;
+		int playerQueueEnd = 1;
+		cellQueue[0] = playerCell;
 		
-		ArrayList<Cell> currentOpponentLayer = new ArrayList<Cell>();
 		Location opponentLocation = board.getOpponentLocation();
 		int opponentRow = opponentLocation.row;
 		int opponentCol = opponentLocation.col;
 		Cell opponentCell = cellBoard[opponentRow * cols + opponentCol]; //board access
 		opponentCell.cellType = CellType.OPPONENT;
-		currentOpponentLayer.add(opponentCell);
+		int opponentQueueStart = 1;
+		int opponentQueueEnd = 2;
+		cellQueue[1] = opponentCell;
+		
+		int queueEnd = 2;
 		
 		int layer = 0;
-		while(!currentPlayerLayer.isEmpty() || !currentOpponentLayer.isEmpty()){
-			if(!currentPlayerLayer.isEmpty()){
-				ArrayList<Cell> newPlayerLayer = new ArrayList<Cell>();
-				int layerSize = currentPlayerLayer.size();
-				for(int i = 0; i < layerSize; i++){
-					Cell cell = currentPlayerLayer.get(i);
-					cell.layer = layer;
-					CellsAvailable cellsAvailable = new CellsAvailable(cellBoard, cell.row, cell.col, CellType.PLAYER, CellType.OPPONENT, CellType.OPPONENT_CONTROLLED);
-					cell.battlefront = cellsAvailable.battleFront;
-					cell.searchMoves = cellsAvailable.controlledMoves;
-					cell.isArticulationPoint = isArticulationPoint(cellsAvailable.articulationMoves);
-					ArrayList<Cell> expandingCells = cellsAvailable.expandingCells;
-					int expandingCellsSize = expandingCells.size();
-					for(int j = 0; j < expandingCellsSize; j++){
-						Cell expandingCell = expandingCells.get(j);
-						expandingCell.cellType = CellType.PLAYER_CONTROLLED;
-						newPlayerLayer.add(expandingCell);
-					}
+		while(playerQueueStart < playerQueueEnd || opponentQueueStart < opponentQueueEnd){
+			while(playerQueueStart < playerQueueEnd){
+				Cell cell = cellQueue[playerQueueStart];
+				cell.layer = layer;
+				CellsAvailable cellsAvailable = new CellsAvailable(cellBoard, cell.row, cell.col, CellType.PLAYER, CellType.OPPONENT, CellType.OPPONENT_CONTROLLED);
+				cell.battlefront = cellsAvailable.battleFront;
+				cell.searchMoves = cellsAvailable.controlledMoves;
+				cell.isArticulationPoint = isArticulationPoint(cellsAvailable.articulationMoves);
+				ArrayList<Cell> expandingCells = cellsAvailable.expandingCells;
+				int expandingCellsSize = expandingCells.size();
+				for(int j = 0; j < expandingCellsSize; j++){
+					Cell expandingCell = expandingCells.get(j);
+					expandingCell.cellType = CellType.PLAYER_CONTROLLED;
+					cellQueue[queueEnd] = expandingCell;
+					queueEnd++;
 				}
-				currentPlayerLayer = newPlayerLayer;
+				playerQueueStart++;
 			}
+			playerQueueStart = opponentQueueEnd;
+			playerQueueEnd = queueEnd;
 			
-			if(!currentOpponentLayer.isEmpty()){
-				ArrayList<Cell> newOpponentLayer = new ArrayList<Cell>();
-				int layerSize = currentOpponentLayer.size();
-				for(int i = 0; i < layerSize; i++){
-					Cell cell = currentOpponentLayer.get(i);
-					cell.layer = layer;
-					CellsAvailable cellsAvailable = new CellsAvailable(cellBoard, cell.row, cell.col, CellType.OPPONENT, CellType.PLAYER, CellType.PLAYER_CONTROLLED);
-					cell.battlefront = cellsAvailable.battleFront;
-					cell.searchMoves = cellsAvailable.controlledMoves;
-					cell.isArticulationPoint = isArticulationPoint(cellsAvailable.articulationMoves);
-					ArrayList<Cell> expandingCells = cellsAvailable.expandingCells;
-					int expandingCellsSize = expandingCells.size();
-					for(int j = 0; j < expandingCellsSize; j++){
-						Cell expandingCell = expandingCells.get(j);
-						expandingCell.cellType = CellType.OPPONENT_CONTROLLED;
-						newOpponentLayer.add(expandingCell);
-					}
+			while(opponentQueueStart < opponentQueueEnd){
+				Cell cell = cellQueue[opponentQueueStart];
+				cell.layer = layer;
+				CellsAvailable cellsAvailable = new CellsAvailable(cellBoard, cell.row, cell.col, CellType.OPPONENT, CellType.PLAYER, CellType.PLAYER_CONTROLLED);
+				cell.battlefront = cellsAvailable.battleFront;
+				cell.searchMoves = cellsAvailable.controlledMoves;
+				cell.isArticulationPoint = isArticulationPoint(cellsAvailable.articulationMoves);
+				ArrayList<Cell> expandingCells = cellsAvailable.expandingCells;
+				int expandingCellsSize = expandingCells.size();
+				for(int j = 0; j < expandingCellsSize; j++){
+					Cell expandingCell = expandingCells.get(j);
+					expandingCell.cellType = CellType.OPPONENT_CONTROLLED;
+					cellQueue[queueEnd] = expandingCell;
+					queueEnd++;
 				}
-				currentOpponentLayer = newOpponentLayer;
+				opponentQueueStart++;
 			}
+			opponentQueueStart = playerQueueEnd;
+			opponentQueueEnd = queueEnd;
+			
 			layer++;
-//			printCellBoard(cellBoard);
 		}
 		
 		int res = count(playerCell, cellBoard, new ArrayList<Cell>()) - count(opponentCell, cellBoard, new ArrayList<Cell>());

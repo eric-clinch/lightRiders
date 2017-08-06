@@ -533,8 +533,6 @@ public class GetMovesABCacheTree implements GetMoves{
 			}
 		}
 		
-		System.err.println(Runtime.getRuntime().freeMemory() / 1048576.0);
-		
 		Stack<Move> s = new Stack<>();
 		s.addElement(bestMove);
 		return s;

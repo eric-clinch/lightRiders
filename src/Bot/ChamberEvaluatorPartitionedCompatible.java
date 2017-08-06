@@ -2,9 +2,19 @@ package Bot;
 
 import java.util.ArrayList;
 
-public class ChamberEvaluator2 implements Evaluator {
+public class ChamberEvaluatorPartitionedCompatible implements Evaluator {
 	
 	private static int cols = Board.cols;
+	private static final int maxValue = 256;
+	private static final int partitionedOffset = 512;
+	
+	public int getMaxValue(){
+		return maxValue;
+	}
+	
+	public int getPartitionedOffset(){
+		return partitionedOffset;
+	}
 	
 	public static String getCellSizeStr(Cell cell){
 //		String res = String.valueOf(cell.chamberSize);
@@ -75,7 +85,7 @@ public class ChamberEvaluator2 implements Evaluator {
 		}
 	}
 	
-	public int countHelper(Cell cell, Cell[] board, ArrayList<Cell> articulationPoints){
+	private int countHelper(Cell cell, Cell[] board, ArrayList<Cell> articulationPoints){
 		cell.visited = true;
 		int result = 1;
 		ArrayList<Move> searchMoves = cell.searchMoves;
@@ -149,6 +159,7 @@ public class ChamberEvaluator2 implements Evaluator {
 	public int evaluate(Board board){
 		Cell[] cellBoard = board.getCellBoard();
 		
+		boolean playersAreConnected = false;		
 		ArrayList<Cell> currentPlayerLayer = new ArrayList<Cell>();
 		Location playerLocation = board.getPlayerLocation();
 		int playerRow = playerLocation.row;
@@ -175,6 +186,7 @@ public class ChamberEvaluator2 implements Evaluator {
 					cell.layer = layer;
 					CellsAvailable cellsAvailable = new CellsAvailable(cellBoard, cell.row, cell.col, CellType.PLAYER, CellType.OPPONENT, CellType.OPPONENT_CONTROLLED);
 					cell.battlefront = cellsAvailable.battleFront;
+					playersAreConnected = playersAreConnected | cell.battlefront;
 					cell.searchMoves = cellsAvailable.controlledMoves;
 					cell.isArticulationPoint = isArticulationPoint(cellsAvailable.articulationMoves);
 					ArrayList<Cell> expandingCells = cellsAvailable.expandingCells;
@@ -214,17 +226,7 @@ public class ChamberEvaluator2 implements Evaluator {
 		
 		int res = count(playerCell, cellBoard, new ArrayList<Cell>()) - count(opponentCell, cellBoard, new ArrayList<Cell>());
 //		printCellBoard(cellBoard);
+		if(!playersAreConnected) res += partitionedOffset;
 		return res;
-	}
-	
-	public static void test(String[] args){
-//		String strBoard = ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,x,x,x,x,.,.,.,.,.,.,.,.,.,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,x,x,x,x,x,x,x,.,x,x,x,x,x,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,x,x,x,x,x,x,.,x,.,.,x,x,x,.,.,.,x,x,x,x,x,x,.,x,.,.,x,x,x,.,.,.,x,x,x,x,.,.,.,x,.,.,x,x,x,x,.,0,x,x,x,x,.,.,.,x,.,.,x,x,x,x,.,.,.,x,x,x,.,.,.,x,.,.,x,x,x,x,.,.,.,x,x,x,.,.,.,x,x,x,x,x,x,x,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,.,.,.,.,.,.,.,.,1,x,x,x,x,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.";
-//		String strBoard = ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,x,x,x,.,.,.,.,.,.,.,.,.,.,.,.,.,x,x,x,x,x,x,x,.,.,.,.,.,.,.,x,x,x,x,.,x,.,.,x,.,.,.,.,.,.,.,x,x,x,x,.,x,.,.,x,.,.,.,.,.,.,.,x,x,.,.,.,x,.,.,x,.,.,.,.,.,.,.,x,x,.,.,.,x,.,.,x,.,.,.,.,.,.,.,x,x,.,.,.,x,.,.,x,x,.,.,.,.,.,.,x,x,.,.,.,x,x,x,x,x,.,.,.,.,.,.,x,x,0,.,.,1,x,x,x,x,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.";
-//		String strBoard = "x,x,x,x,x,x,x,x,.,.,.,.,.,.,x,x,x,x,x,.,x,x,x,x,0,x,x,x,x,x,x,1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,.,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,.,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,.,x,x,x,x,x,x,x,.,.,x,x,x,x,x,x,.,.,x,x,x,x,x,x,.,.,x,x,x,x,x,x,.,.,x,x,x,x,x,x,.,.,x,x,x,x,x,x,.,.,.,x,x,x,x,x,.,.,x,x,x,x,x,x,.,.,.,.,.,.,x,x,x,.,x,x,x,x,.,.,.,.,.,.,.,.,x,x,x,x,x,x,x,x,.,.,.,.,.,.,.,.,.,x,x,x,x,x,x,x,.,.,.,.,.,.,.,.,.,x,x,.,x,x,x,x,x,x,.,.,.,.,.,.,.,.,.,.,.,.,x,x,x,x,.,.,.,.,.,.,.,.,.,.,.,.,.,.,x,x,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.";
-		String strBoard = ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,x,x,x,x,x,0,.,.,.,.,.,.,.,.,.,.,x,x,x,x,x,x,x,x,x,x,.,.,.,.,.,.,x,x,x,x,x,x,x,.,x,x,x,x,.,.,.,.,x,x,x,x,x,x,x,x,x,.,x,x,.,.,.,.,x,x,x,x,x,x,x,x,.,x,x,x,.,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,.,x,x,x,x,.,x,x,x,x,.,x,x,.,.,.,.,x,x,x,.,x,x,x,x,x,x,x,x,.,.,.,.,x,x,x,.,x,x,x,x,x,x,x,x,.,.,.,.,.,.,.,.,.,x,x,x,x,x,x,x,.,.,.,.,x,x,x,x,x,x,x,x,x,x,x,x,.,.,.,.,x,x,x,x,x,x,x,x,x,1,.,.,.,.,.,.,x,x,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.";
-		Board board = (Board) new PieceBoard(strBoard, 16, 16, "0", "1");
-		System.out.println(board.toString());
-		ChamberEvaluator2 evaluator = new ChamberEvaluator2();
-		evaluator.evaluate(board);
 	}
 }

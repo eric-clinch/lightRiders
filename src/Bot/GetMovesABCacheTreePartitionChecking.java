@@ -13,15 +13,19 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 	private boolean partitioned;
 	private int partitionSpace;
 	private int sortThreshold;
+	private int maxEvaluationValue;
+	private int partitionedEvaluationOffset;
 	public CacheTree currentTree;
 	
-	public GetMovesABCacheTreePartitionChecking (Evaluator evaluator, GetSearchNumber getSearchDepth){
+	public GetMovesABCacheTreePartitionChecking(Evaluator evaluator, GetSearchNumber getSearchDepth){
 		this.evaluator = evaluator;
 		this.getSearchDepth = getSearchDepth;
 		this.partitioned = false;
 		this.partitionSpace = -1;
 		this.sortThreshold = 3;
 		this.currentTree = null;
+		this.maxEvaluationValue = evaluator.getMaxValue();
+		this.partitionedEvaluationOffset = evaluator.getPartitionedOffset();
 	}
 	
 	private class CacheTreeChild {
@@ -47,11 +51,11 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 	
 	private class CacheTree {
 		public CacheTreeChild[] children;
-		public Integer partitioned;
+		public Integer partitionedEvaluation;
 		
-		public CacheTree(CacheTreeChild[] children, Integer partitioned) {
+		public CacheTree(CacheTreeChild[] children, Integer partitionedEvaluation) {
 			this.children = children;
-			this.partitioned = partitioned;
+			this.partitionedEvaluation = partitionedEvaluation;
 		}
 		
 		public CacheTree getChild(Move move){
@@ -117,46 +121,11 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 		return floodFillHelper(board, board.getPlayerLocation());
 	}
 	
-//	public boolean isArticulationPoint(Move[] legalMoves){
-//		if(legalMoves.length != 2) return false;
-//		Move move0 = legalMoves[0];
-//		Move move1 = legalMoves[1];
-//		return move0.drow == move1.drow || move0.dcol == move1.dcol;
-//	}
-	
-	private static boolean[] potentialArticulation = {
-			  false,false,false,false,false,true,false,false,false,true,false,false,false,true,false,false,
-			  false,true,true,true,true,true,true,true,false,true,false,false,false,true,false,false,
-			  false,true,true,true,true,true,true,true,false,true,false,false,false,true,false,false,
-			  false,true,true,true,true,true,true,true,false,true,false,false,false,true,false,false,
-			  false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,
-			  true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,
-			  false,true,true,true,true,true,true,true,false,true,false,false,false,true,false,false,
-			  false,true,true,true,true,true,true,true,false,true,false,false,false,true,false,false,
-			  false,false,false,false,true,true,false,false,true,true,false,false,true,true,false,false,
-			  true,true,true,true,true,true,true,true,true,true,false,false,true,true,false,false,
-			  false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false,
-			  false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false,
-			  false,false,false,false,true,true,false,false,true,true,false,false,true,true,false,false,
-			  true,true,true,true,true,true,true,true,true,true,false,false,true,true,false,false,
-			  false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false,
-			  false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false};
-	
-	public int getNeighbors(Location location, Board board){
-		int row = location.row;
-		int col = location.col;
-		return (board.isAvailable(row-1, col-1)) |
-				(board.isAvailable(row, col-1))<<1 | 
-				(board.isAvailable(row+1, col-1))<<2 | 
-				(board.isAvailable(row+1, col))<<3 | 
-				(board.isAvailable(row+1, col+1))<<4 | 
-				(board.isAvailable(row, col+1))<<5 | 
-				(board.isAvailable(row-1, col+1))<<6 |
-				(board.isAvailable(row-1, col))<<7;
-	}
-	
-	public boolean isArticulationPoint(Location location, Board board){
-		return potentialArticulation[getNeighbors(location, board)];
+	public boolean isArticulationPoint(Move[] legalMoves){
+		if(legalMoves.length != 2) return false;
+		Move move0 = legalMoves[0];
+		Move move1 = legalMoves[1];
+		return move0.drow == move1.drow || move0.dcol == move1.dcol;
 	}
 	
 	private class PathEvaluation{
@@ -181,7 +150,9 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 	private PathEvaluation playerEvaluation(Board board, CacheTree thisTree, int depth, int maxDepth, PathEvaluation alpha, PathEvaluation beta){
 		assert(thisTree != null);
 		assert(depth % 2 == 0);
-		if(thisTree.partitioned != null) return new PathEvaluation(thisTree.partitioned, depth);
+		if(thisTree.partitionedEvaluation != null){
+			return new PathEvaluation(thisTree.partitionedEvaluation, depth);
+		}
 		if(depth == maxDepth) return new PathEvaluation(evaluator.evaluate(board), depth);
 		
 		PathEvaluation maxVal = new PathEvaluation(Integer.MIN_VALUE, depth);
@@ -193,12 +164,11 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 			int legalMovesLength = legalMoves.length;
 			CacheTreeChild[] children = new CacheTreeChild[legalMovesLength];
 			if(shouldSort) edges = new CacheTreeEdge[legalMovesLength];
-			boolean checkPartition = isArticulationPoint(board.getPlayerLocation(), board);
 			
 			for(int i = 0; i < legalMovesLength; i++){
 				Move move = legalMoves[i];
 				board.makePlayerMove(move);
-				CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move, checkPartition);
+				CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move);
 				board.undoPlayerMove(move);
 				
 				PathEvaluation moveEvaluation = edge.evaluation;
@@ -221,17 +191,14 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 			CacheTreeChild[] children = thisTree.children;
 			int numChildren = thisTree.children.length;
 			if(shouldSort) edges = new CacheTreeEdge[numChildren];
-			Boolean checkPartitioned = null; // only compute if needed
-			
 			for(int i = 0; i < numChildren; i++){
 				CacheTreeChild child = children[i];
 				Move move = child.move;
 				PathEvaluation moveEvaluation;
 				
 				if(child.cacheTree == null){
-					if(checkPartitioned == null) checkPartitioned = isArticulationPoint(board.getPlayerLocation(), board);
 					board.makePlayerMove(move);
-					CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move, checkPartitioned);
+					CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move);
 					board.undoPlayerMove(move);
 					
 					moveEvaluation = edge.evaluation;
@@ -264,7 +231,9 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 	private PathEvaluation opponentEvaluation(Board board, CacheTree thisTree, int depth, int maxDepth, PathEvaluation alpha, PathEvaluation beta){
 		assert(thisTree != null);
 		assert(depth % 2 == 1);
-		if(thisTree.partitioned != null) return new PathEvaluation(thisTree.partitioned, depth);
+		if(thisTree.partitionedEvaluation != null){
+			return new PathEvaluation(thisTree.partitionedEvaluation, depth);
+		}
 		if(depth == maxDepth) return new PathEvaluation(evaluator.evaluate(board), depth);
 		
 		PathEvaluation minVal = new PathEvaluation(Integer.MAX_VALUE, depth);
@@ -276,11 +245,10 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 			int legalMovesLength = legalMoves.length;
 			if(shouldSort) edges = new CacheTreeEdge[legalMovesLength];
 			CacheTreeChild[] children = new CacheTreeChild[legalMovesLength];
-			boolean checkPartitioned = isArticulationPoint(board.getOpponentLocation(), board);
 			for(int i = 0; i < legalMovesLength; i++){
 				Move move = legalMoves[i];
 				board.makeOpponentMove(move);
-				CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move, checkPartitioned);
+				CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move);
 				board.undoOpponentMove(move);
 				
 				PathEvaluation moveEvaluation = edge.evaluation;
@@ -303,7 +271,6 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 			CacheTreeChild[] children = thisTree.children;
 			int numChildren = thisTree.children.length;
 			if(shouldSort) edges = new CacheTreeEdge[numChildren];
-			Boolean checkPartitioned = null; // only compute if needed
 			
 			for(int i = 0; i < numChildren; i++){
 				CacheTreeChild child = children[i];
@@ -311,9 +278,8 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 				PathEvaluation moveEvaluation;
 				
 				if(child.cacheTree == null){
-					if(checkPartitioned == null) checkPartitioned = isArticulationPoint(board.getOpponentLocation(), board);
 					board.makeOpponentMove(move);
-					CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move, checkPartitioned);
+					CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move);
 					board.undoOpponentMove(move);
 					
 					child.cacheTree = edge.cacheTreeChild.cacheTree;
@@ -343,20 +309,19 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 		return minVal;
 	}
 	
-	private CacheTreeEdge makePlayerEdge(Board board, int depth, int maxDepth, PathEvaluation alpha, PathEvaluation beta, Move lastMove, boolean checkPartitioned){
+	private CacheTreeEdge makePlayerEdge(Board board, int depth, int maxDepth, PathEvaluation alpha, PathEvaluation beta, Move lastMove){
 		assert(depth % 2 == 0);
-		if(checkPartitioned && floodFill(board) != -1){
-			int evaluation = evaluator.evaluate(board) * 1000;
-			CacheTree tree = new CacheTree(null, evaluation);
-			CacheTreeChild child = new CacheTreeChild(lastMove, tree);
+		if(depth == maxDepth){
+			int evaluation = evaluator.evaluate(board);
+			boolean isPartitioned = evaluation > maxEvaluationValue;
+			if(isPartitioned){
+				evaluation -= partitionedEvaluationOffset;
+				evaluation *= 256;
+			}
 			PathEvaluation pathEvaluation = new PathEvaluation(evaluation, depth);
-			return new CacheTreeEdge(child, pathEvaluation);
-		}
-		else if(depth == maxDepth){
-			CacheTree tree = new CacheTree(null, null);
+			CacheTree tree = new CacheTree(null, isPartitioned ? evaluation : null);
 			CacheTreeChild child = new CacheTreeChild(lastMove, tree);
-			PathEvaluation evaluation = new PathEvaluation(evaluator.evaluate(board), depth);
-			return new CacheTreeEdge(child, evaluation); 
+			return new CacheTreeEdge(child, pathEvaluation); 
 		}
 		
 		boolean shouldSort = depth == sortThreshold || depth == sortThreshold - 1;
@@ -367,11 +332,10 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 		int legalMovesLength = legalMoves.length;
 		CacheTreeChild[] children = new CacheTreeChild[legalMovesLength];
 		if(shouldSort) edges = new CacheTreeEdge[legalMovesLength];
-		checkPartitioned = isArticulationPoint(board.getPlayerLocation(), board);
 		for(int i = 0; i < legalMovesLength; i++){
 			Move move = legalMoves[i];
 			board.makePlayerMove(move);
-			CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move, checkPartitioned);
+			CacheTreeEdge edge = makeOpponentEdge(board, depth + 1, maxDepth, alpha, beta, move);
 			board.undoPlayerMove(move);
 			
 			PathEvaluation moveEvaluation = edge.evaluation;
@@ -397,14 +361,20 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 		return new CacheTreeEdge(child, maxVal); 
 	}
 	
-	private CacheTreeEdge makeOpponentEdge(Board board, int depth, int maxDepth, PathEvaluation alpha, PathEvaluation beta, Move lastMove, boolean checkPartitioned){
+	private CacheTreeEdge makeOpponentEdge(Board board, int depth, int maxDepth, PathEvaluation alpha, PathEvaluation beta, Move lastMove){
 		assert(depth % 2 == 1);
 		if(depth == maxDepth){
 			assert(false);
-			CacheTree tree = new CacheTree(null, null);
+			int evaluation = evaluator.evaluate(board);
+			boolean isPartitioned = evaluation > maxEvaluationValue;
+			if(isPartitioned){
+				evaluation -= partitionedEvaluationOffset;
+				evaluation *= 256;
+			}
+			PathEvaluation pathEvaluation = new PathEvaluation(evaluation, depth);
+			CacheTree tree = new CacheTree(null, isPartitioned ? evaluation : null);
 			CacheTreeChild child = new CacheTreeChild(lastMove, tree);
-			PathEvaluation evaluation = new PathEvaluation(evaluator.evaluate(board), depth);
-			return new CacheTreeEdge(child, evaluation); 
+			return new CacheTreeEdge(child, pathEvaluation); 
 		}
 		
 		boolean shouldSort = depth == sortThreshold || depth == sortThreshold - 1;
@@ -415,11 +385,10 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 		int legalMovesLength = legalMoves.length;
 		CacheTreeChild[] children = new CacheTreeChild[legalMovesLength];
 		if(shouldSort) edges = new CacheTreeEdge[legalMovesLength];
-		checkPartitioned = checkPartitioned || isArticulationPoint(board.getOpponentLocation(), board);
 		for(int i = 0; i < legalMovesLength; i++){
 			Move move = legalMoves[i];
 			board.makeOpponentMove(move);
-			CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move, checkPartitioned);
+			CacheTreeEdge edge = makePlayerEdge(board, depth + 1, maxDepth, alpha, beta, move);
 			board.undoOpponentMove(move);
 			
 			PathEvaluation moveEvaluation = edge.evaluation;
@@ -541,10 +510,9 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 				PathEvaluation bestEval = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
 				CacheTree bestChildTree = null;
 				Move[] legalMoves = board.getLegalMovesForPlayer();
-				boolean checkPartition = isArticulationPoint(board.getPlayerLocation(), board);
 				for(Move move : legalMoves){
 					board.makePlayerMove(move);
-					CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null, checkPartition);
+					CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null);
 					board.undoPlayerMove(move);
 					
 					PathEvaluation eval = edge.evaluation;
@@ -560,8 +528,6 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 				PathEvaluation bestEval = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
 				bestMove = null;
 				CacheTree bestSubtree = null;
-				Boolean checkPartition = null; // only compute if needed
-				
 				for(CacheTreeChild child : currentTree.children){
 					Move move = child.move;
 					CacheTree subtree = child.cacheTree;
@@ -571,9 +537,8 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 						eval = opponentEvaluation(board, subtree, 1, recursions, alpha, beta);
 						board.undoPlayerMove(move);
 					} else {
-						if(checkPartition == null) checkPartition = isArticulationPoint(board.getPlayerLocation(), board);
 						board.makePlayerMove(move);
-						CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null, checkPartition);
+						CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null);
 						board.undoPlayerMove(move);
 						subtree = edge.cacheTreeChild.cacheTree;
 						eval = edge.evaluation;
@@ -592,8 +557,6 @@ public class GetMovesABCacheTreePartitionChecking implements GetMoves{
 				currentTree = bestSubtree;
 			}
 		}
-		
-		System.err.println(Runtime.getRuntime().freeMemory() / 1048576.0);
 		
 		Stack<Move> s = new Stack<>();
 		s.addElement(bestMove);

@@ -1,6 +1,6 @@
 package Bot;
 
-public class ControlEvaluatorDifference implements Evaluator {
+public class ControlEvaluator implements Evaluator {
 	
 	private int queueFloodFill(Board board){
 		board = board.deepcopy();
@@ -66,6 +66,15 @@ public class ControlEvaluatorDifference implements Evaluator {
 		}
 		return playerControl - opponentControl;
 	}
+	
+	public int getMaxValue(){
+		return 256;
+	}
+	
+	public int getPartitionedOffset(){
+		return 512;
+	}
+	
 	
 	public int evaluate(Board board){
 		return queueFloodFill(board);
