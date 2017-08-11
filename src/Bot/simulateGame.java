@@ -39,10 +39,10 @@ public class simulateGame {
 		long timePerMovePlayer = 200;
 		long timePerMoveOpponent = 200;
 		int timeFudge = 2; //used for matching the speed of the competition servers
-//		int playerRow = random.nextInt(Board.rows - 2) + 1;
-//		int playerCol = random.nextInt((Board.cols / 2) - 2) + 1;
-		int playerRow = 7;
-		int playerCol = 4;
+		int playerRow = random.nextInt(Board.rows - 2) + 1;
+		int playerCol = random.nextInt((Board.cols / 2) - 2) + 1;
+//		int playerRow = 7;
+//		int playerCol = 4;
 		long playerTime = 10000;
 		int opponentRow = playerRow;
 		int opponentCol = Board.cols - playerCol - 1;
@@ -116,8 +116,8 @@ public class simulateGame {
 	}
 	
 	public static void main(String[] args){
-		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst((Evaluator) new ChamberEvaluator(), new constantBotDepth(6)));
-		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst((Evaluator) new ChamberEvaluator(), new constantBotDepth(6)));
+		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ControlEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 		
 		simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
 		ArrayList<Board> boards = res.boards;
@@ -125,9 +125,9 @@ public class simulateGame {
 		printBoards(boards);
 		
 //		ArrayList<tournamentResult> results = new ArrayList<tournamentResult>();
-//		for(int i = 0; i * i <= 250; i++){
+//		for(int i = 7; i <= 12; i++){
 //			int threshold = i * i;
-//			int gamesToPlay = 100;
+//			int gamesToPlay = 300;
 //			int gamesWonByBot1 = 0;
 //			int gamesWonByBot0 = 0;
 //			int gamesTied = 0;
@@ -135,7 +135,7 @@ public class simulateGame {
 //			int gamesTimedOutByBot1 = 0;
 //			for(int round = 0; round < gamesToPlay; round++){
 //				Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-//				Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerPrune((Evaluator) new ChamberEvaluator(), new bot0Depth(), threshold));
+//				Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerPruneTreeSize((Evaluator) new ChamberEvaluator(), new AdaptiveDepthWithTreeSize(), threshold));
 //				
 //				if(round % 2 == 0){
 //					simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
@@ -162,15 +162,15 @@ public class simulateGame {
 //			System.out.println("Games played: " + tres.gamesPlayed + " bot 0: " + tres.gamesWonByPlayer0 + " bot 0 timeouts: " + tres.gamesTimedOutByPlayer0 + " bot 1: " + tres.gamesWonByPlayer1 + " bot 1 timeouts: " + tres.gamesTimedOutByPlayer1 + " tied: " + tres.gamesTied + " threshold: " + tres.parameter);;
 //		}
 		
-//		int gamesToPlay = 300;
+//		int gamesToPlay = 100;
 //		int gamesWonByBot0 = 0;
 //		int gamesWonByBot1 = 0;
 //		int gamesTimedOutByBot0 = 0;
 //		int gamesTimedOutByBot1 = 0;
 //		int gamesTied = 0;
 //		for(int i = 0; i < gamesToPlay; i++){
-//			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-//			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerPartition((Evaluator) new ChamberEvaluator(), new bot0Depth()));
+//			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerPartitionTreeSize((Evaluator) new ChamberEvaluator(), new AdaptiveDepthWithTreeSize()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 //			
 //			if(i % 2 == 0){
 //				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
@@ -296,7 +296,69 @@ public class simulateGame {
 		}
 	}
 	
-	//equivalent to adaptiveBotDepth(270)
+	private static class constantBotDepthWithTreeSize implements GetSearchNumberWithTreeSize {
+		
+		private int constant;
+		private int leafs;
+		private int previousTime = 10000;
+		
+		public constantBotDepthWithTreeSize(int constant){
+			this.constant = constant;
+		}
+		
+		public void setTreeLeafs(int treeLeafs){
+			this.leafs = treeLeafs;
+		}
+		
+		public  int apply(int time, int rounds, int numOfMoveCombinations){
+			int timeOnLastMove = (time == 10000) ? 0 : 200 + previousTime - time;
+			previousTime = time;
+			System.err.println();
+			System.out.flush();
+			System.err.flush();
+			System.err.println("time on round " + (rounds - 1) + " : " + timeOnLastMove);
+			System.err.println("round " + rounds + " leafs: " + leafs);
+			System.err.flush();
+			return constant;
+		}
+	}
+	
+	private static class AdaptiveDepthWithTreeSize implements GetSearchNumberWithTreeSize {
+
+		private int leafs;
+		private int previousTime = 10000;
+		private int previousDepth = 3;
+		
+		public void setTreeLeafs(int treeLeafs){
+			this.leafs = treeLeafs;
+		}
+		
+		public  int apply(int time, int rounds, int numOfMoveCombinations){
+			int timeLost = previousTime - time;
+			previousTime = time;
+			
+//			int timeOnLastMove = (time == 10000) ? 0 : 200 + previousTime - time;
+//			previousTime = time;
+//			System.err.println();
+//			System.out.flush();
+//			System.err.flush();
+//			System.err.println("time on round " + (rounds - 1) + " : " + timeOnLastMove);
+//			System.err.println("round " + rounds + " leafs: " + leafs);
+//			System.err.flush();
+			
+			int res = previousDepth;
+			if(time < 1000 || timeLost > 600) res--;
+			else if(time < 3000 && timeLost > 0) res--;
+			else if (leafs > 2500) res--;
+			else if (leafs < 150) res += 2;
+			else if(leafs < 1000) res++;
+			
+			res = Math.max(res, 3);
+			previousDepth = res;
+			return res;
+		}
+	}
+	
 	private static class bot0Depth implements GetSearchNumber {
 		private int previousNumber = 3;
 		private int previousTime = 10000;
@@ -322,16 +384,24 @@ public class simulateGame {
 	}
 	
 	private static class bot1Depth implements GetSearchNumber {
-		
-		private int previousNumber = 3;
-		private int previousTime = 0;
+		private int previousNumber = 4;
+		private int previousTime = 10000;
+		private int previousTimeLost = -135;
 		
 		public  int apply(int time, int rounds, int numOfMoveCombinations){
-			if(time > 8000 && rounds > 24) return 9;
-			if(time > 6000 && rounds > 18) return 8;
-			else if(time > 4000 && rounds > 12) return 7;
-			else if(time > 2000 && rounds > 6) return 6;
-			else return 5;
+			int timeLost = previousTime - time;
+			
+			int res = previousNumber;
+			if(timeLost > 600) res--;
+			else if(timeLost > 0 && time < 3000) res--;
+			else if(timeLost + previousTimeLost < -270 || time >= 10000){
+				res++;
+			}
+			
+			previousTimeLost = timeLost;
+			previousNumber = res;
+			previousTime = time;
+			return res;
 		}
 	}
 	

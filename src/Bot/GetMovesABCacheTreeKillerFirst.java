@@ -12,8 +12,6 @@ public class GetMovesABCacheTreeKillerFirst implements GetMoves{
 	private DescendingChildrenSorter descendingChildrenSorter = new DescendingChildrenSorter();
 	private AscendingMoveSorter ascendingMoveSorter = new AscendingMoveSorter();
 	private DescendingMoveSorter descendingMoveSorter = new DescendingMoveSorter();
-	private boolean partitioned;
-	private int partitionSpace;
 	private int sortThreshold;
 	private int moveSortThreshold;
 	public CacheTree currentTree;
@@ -21,8 +19,6 @@ public class GetMovesABCacheTreeKillerFirst implements GetMoves{
 	public GetMovesABCacheTreeKillerFirst(Evaluator evaluator, GetSearchNumber getSearchDepth){
 		this.evaluator = evaluator;
 		this.getSearchDepth = getSearchDepth;
-		this.partitioned = false;
-		this.partitionSpace = -1;
 		this.sortThreshold = 3;
 		this.moveSortThreshold = 3;
 		this.currentTree = null;
@@ -158,28 +154,6 @@ public class GetMovesABCacheTreeKillerFirst implements GetMoves{
 			array[i] = array[i - 1];
 		}
 		array[0] = temp;
-	}
-	
-	private int floodFillHelper(Board board, Location location){
-		int res = 0;
-		for(Move move : Move.ALLMOVES){
-			Location newLocation = new Location(location.row + move.drow, location.col + move.dcol);
-			if(newLocation.equals(board.getOpponentLocation())) return -1;
-			if(board.floodable(newLocation.row, newLocation.col)){
-				board.placeFlood(newLocation.row, newLocation.col);
-				res++;
-				int recursedRes = floodFillHelper(board, newLocation);
-				
-				if(recursedRes == -1) return -1;
-				else res += recursedRes;
-			}
-		}
-		return res;
-	}
-	
-	private int floodFill(Board board){
-		board = board.deepcopy();
-		return floodFillHelper(board, board.getPlayerLocation());
 	}
 	
 	public boolean isArticulationPoint(Move[] legalMoves){
@@ -466,149 +440,69 @@ public class GetMovesABCacheTreeKillerFirst implements GetMoves{
 		return new CacheTreeEdge(child, minVal); 
 	}
 	
-	private int getBestMoveFillHelper(Board board, int recursions){
-		if(recursions <= 0) return floodFill(board);
-		else{
-			int maxSpots = Integer.MIN_VALUE;
-			for(Move move : Move.ALLMOVES){
-				if(!board.isLegalMoveForPlayer(move)) continue;
-				board.makePlayerMove(move);
-				int spots = getBestMoveFillHelper(board, recursions - 1);
-				board.undoPlayerMove(move);
-				maxSpots = Math.max(maxSpots, spots);
-			}
-			return maxSpots;
-		}
-	}
-	
-	private Move getBestMoveFill(Board board, int recursions){
-		int maxSpots = Integer.MIN_VALUE;
-		Move bestMove = Move.UP; //default move
-		for(Move move : Move.ALLMOVES){
-			if(!board.isLegalMoveForPlayer(move)) continue;
-			board.makePlayerMove(move);
-			int spots = getBestMoveFillHelper(board, recursions - 1);
-			board.undoPlayerMove(move);
-			if(spots > maxSpots){
-				maxSpots = spots;
-				bestMove = move;
-			}
-		}
-		return bestMove;
-	}
-	
-	private Stack<Move> backtrackFill(Board board, int spotsToFill){
-		if(spotsToFill <= 0){
-			System.err.println("backtracked to max depth");
-			Stack<Move> s = new Stack<>();
-			s.addElement(Move.UP);
-			return s;
-		}
-		int maxMoves = Integer.MIN_VALUE;
-		Stack<Move> bestRes = null;
-		for(Move move : Move.ALLMOVES){
-			if(!board.isLegalMoveForPlayer(move)) continue;
-			board.makePlayerMove(move);
-			Stack<Move> res = backtrackFill(board, spotsToFill - 1);
-			board.undoPlayerMove(move);
-			if(res.size() == spotsToFill){
-				res.addElement(move);
-				return res;
-			}
-			else if (bestRes == null || maxMoves < res.size()){
-				maxMoves = res.size();
-				res.addElement(move);
-				bestRes = res;
-			}
-		}
-		if(bestRes != null) return bestRes;
-		else{
-			bestRes = new Stack<>();
-			bestRes.addElement(Move.UP);
-			return bestRes;
-		}
-	}
-	
 	public Stack<Move> getPlayerMoves(Board board, int time, int round, Move lastOpponentMove){
 		System.err.print("round " + round + " ");
 		Move bestMove;
+
+		int moveDepthToSearch = getSearchDepth.apply(time, round, 0);
+		System.err.println("searching with depth " + Integer.toString(moveDepthToSearch));
 		
-		if(!partitioned){
-			partitionSpace = floodFill(board);
-			if(partitionSpace != -1) partitioned = true;
-		}
+		int recursions = 2 * moveDepthToSearch;
 		
-		if(partitioned){
-			if(partitionSpace < 30){
-				System.err.println("backtrack filling with depth " + Integer.toString(partitionSpace));
-				return backtrackFill(board, partitionSpace);
+		PathEvaluation alpha = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
+		PathEvaluation beta = new PathEvaluation(Integer.MAX_VALUE, Integer.MAX_VALUE);
+		
+		if(currentTree == null){
+			bestMove = Move.UP;
+			PathEvaluation bestEval = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
+			CacheTree bestChildTree = null;
+			Move[] legalMoves = board.getLegalMovesForPlayer();
+			descendingSortMoves(legalMoves, board);
+			for(Move move : legalMoves){
+				board.makePlayerMove(move);
+				CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null);
+				board.undoPlayerMove(move);
+				
+				PathEvaluation eval = edge.evaluation;
+				if(bestEval.compare(eval) < 0){
+					bestEval = eval;
+					bestMove = move;
+					bestChildTree = edge.cacheTreeChild.cacheTree;
+				}
 			}
-			int fillRecursions = 12;
-			System.err.println("filling with depth " + Integer.toString(fillRecursions));
-			bestMove = getBestMoveFill(board, fillRecursions);
-			partitionSpace--;
-		}
-		else{
-			int moveDepthToSearch = getSearchDepth.apply(time, round, 0);
-			System.err.println("searching with depth " + Integer.toString(moveDepthToSearch));
-			
-			int recursions = 2 * moveDepthToSearch;
-			
-			PathEvaluation alpha = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
-			PathEvaluation beta = new PathEvaluation(Integer.MAX_VALUE, Integer.MAX_VALUE);
-			
-			if(currentTree == null){
-				bestMove = Move.UP;
-				PathEvaluation bestEval = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
-				CacheTree bestChildTree = null;
-				Move[] legalMoves = board.getLegalMovesForPlayer();
-				descendingSortMoves(legalMoves, board);
-				for(Move move : legalMoves){
+			currentTree = bestChildTree;
+		} else {
+			currentTree = currentTree.getChild(lastOpponentMove);
+			PathEvaluation bestEval = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
+			bestMove = null;
+			CacheTree bestSubtree = null;
+			for(CacheTreeChild child : currentTree.children){
+				Move move = child.move;
+				CacheTree subtree = child.cacheTree;
+				PathEvaluation eval;
+				if(subtree != null){
+					board.makePlayerMove(move);
+					eval = opponentEvaluation(board, subtree, 1, recursions, alpha, beta);
+					board.undoPlayerMove(move);
+				} else {
 					board.makePlayerMove(move);
 					CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null);
 					board.undoPlayerMove(move);
-					
-					PathEvaluation eval = edge.evaluation;
-					if(bestEval.compare(eval) < 0){
-						bestEval = eval;
-						bestMove = move;
-						bestChildTree = edge.cacheTreeChild.cacheTree;
+					subtree = edge.cacheTreeChild.cacheTree;
+					eval = edge.evaluation;
+				}
+				
+				if(bestEval.compare(eval) < 0){
+					bestEval = eval;
+					bestMove = move;
+					bestSubtree = subtree;
+					if(alpha.compare(bestEval) < 0){
+						alpha = bestEval;
 					}
 				}
-				currentTree = bestChildTree;
-			} else {
-				currentTree = currentTree.getChild(lastOpponentMove);
-				PathEvaluation bestEval = new PathEvaluation(Integer.MIN_VALUE, Integer.MIN_VALUE);
-				bestMove = null;
-				CacheTree bestSubtree = null;
-				for(CacheTreeChild child : currentTree.children){
-					Move move = child.move;
-					CacheTree subtree = child.cacheTree;
-					PathEvaluation eval;
-					if(subtree != null){
-						board.makePlayerMove(move);
-						eval = opponentEvaluation(board, subtree, 1, recursions, alpha, beta);
-						board.undoPlayerMove(move);
-					} else {
-						board.makePlayerMove(move);
-						CacheTreeEdge edge = makeOpponentEdge(board, 1, recursions, alpha, beta, null);
-						board.undoPlayerMove(move);
-						subtree = edge.cacheTreeChild.cacheTree;
-						eval = edge.evaluation;
-					}
-					
-					if(bestEval.compare(eval) < 0){
-						bestEval = eval;
-						bestMove = move;
-						bestSubtree = subtree;
-						if(alpha.compare(bestEval) < 0){
-							alpha = bestEval;
-						}
-					}
-				}
-				if(bestMove == null) bestMove = Move.UP;
-				currentTree = bestSubtree;
 			}
+			if(bestMove == null) bestMove = Move.UP;
+			currentTree = bestSubtree;
 		}
 		
 		Stack<Move> s = new Stack<>();

@@ -12,28 +12,6 @@ public class GetMovesAlphaBetaVariableDepth implements GetMoves{
 		this.getBoardsToEvaluate = getBoardsToEvaluate;
 	}
 	
-	private int floodFillHelper(Board board, Location location){
-		int res = 0;
-		for(Move move : Move.ALLMOVES){
-			Location newLocation = new Location(location.row + move.drow, location.col + move.dcol);
-			if(newLocation.equals(board.getOpponentLocation())) return -1;
-			if(board.floodable(newLocation.row, newLocation.col)){
-				board.placeFlood(newLocation.row, newLocation.col);
-				res++;
-				int recursedRes = floodFillHelper(board, newLocation);
-				
-				if(recursedRes == -1) return -1;
-				else res += recursedRes;
-			}
-		}
-		return res;
-	}
-	
-	private int floodFill(Board board){
-		board = board.deepcopy();
-		return floodFillHelper(board, board.getPlayerLocation());
-	}
-	
 	private class pathEvaluation{
 		int evaluation;
 		int searchHeight; //represents how far from the bottom of the search tree the evaluation
@@ -95,107 +73,32 @@ public class GetMovesAlphaBetaVariableDepth implements GetMoves{
 		}
 	}
 	
-	private int getBestMoveFillHelper(Board board, int recursions){
-		if(recursions <= 0) return floodFill(board);
-		else{
-			int maxSpots = Integer.MIN_VALUE;
-			for(Move move : Move.ALLMOVES){
-				if(!board.isLegalMoveForPlayer(move)) continue;
-				board.makePlayerMove(move);
-				int spots = getBestMoveFillHelper(board, recursions - 1);
-				board.undoPlayerMove(move);
-				maxSpots = Math.max(maxSpots, spots);
-			}
-			return maxSpots;
-		}
-	}
-	
-	private Move getBestMoveFill(Board board, int recursions){
-		int maxSpots = Integer.MIN_VALUE;
-		Move bestMove = Move.UP; //default move
-		for(Move move : Move.ALLMOVES){
-			if(!board.isLegalMoveForPlayer(move)) continue;
-			board.makePlayerMove(move);
-			int spots = getBestMoveFillHelper(board, recursions - 1);
-			board.undoPlayerMove(move);
-			if(spots > maxSpots){
-				maxSpots = spots;
-				bestMove = move;
-			}
-		}
-		return bestMove;
-	}
-	
-	private Stack<Move> backtrackFill(Board board, int spotsToFill){
-		if(spotsToFill <= 0){
-			System.err.println("backtracked to max depth");
-			Stack<Move> s = new Stack<>();
-			s.addElement(Move.UP);
-			return s;
-		}
-		int maxMoves = Integer.MIN_VALUE;
-		Stack<Move> bestRes = null;
-		for(Move move : Move.ALLMOVES){
-			if(!board.isLegalMoveForPlayer(move)) continue;
-			board.makePlayerMove(move);
-			Stack<Move> res = backtrackFill(board, spotsToFill - 1);
-			board.undoPlayerMove(move);
-			if(res.size() == spotsToFill){
-				res.addElement(move);
-				return res;
-			}
-			else if (bestRes == null || maxMoves < res.size()){
-				maxMoves = res.size();
-				res.addElement(move);
-				bestRes = res;
-			}
-		}
-		if(bestRes != null) return bestRes;
-		else{
-			bestRes = new Stack<>();
-			bestRes.addElement(Move.UP);
-			return bestRes;
-		}
-	}
-	
 	public Stack<Move> getPlayerMoves(Board board, int time, int round, Move lastOpponentMove){
 		System.err.print("round " + round + " ");
 		Move bestMove;
+
+		int boardsToEvaluate = getBoardsToEvaluate.apply(time, round, 0);
+		System.err.println("searching with depth " + Integer.toString(boardsToEvaluate));
 		
-		int floodFillResult = floodFill(board);
-		if(floodFillResult != -1){
-			if(floodFillResult < 30){
-				System.err.println("backtrack filling with depth " + Integer.toString(floodFillResult));
-				return backtrackFill(board, floodFillResult);
-			}
-			int fillRecursions = 15;
-			System.err.println("filling with depth " + Integer.toString(fillRecursions));
-			bestMove = getBestMoveFill(board, fillRecursions);
-		}
-		else{
-			int boardsToEvaluate = getBoardsToEvaluate.apply(time, round, 0);
-			System.err.println("searching with depth " + Integer.toString(boardsToEvaluate));
-			
-			pathEvaluation alpha = new pathEvaluation(Integer.MIN_VALUE, Integer.MAX_VALUE);
-			pathEvaluation beta = new pathEvaluation(Integer.MAX_VALUE, Integer.MIN_VALUE);
-			
-			pathEvaluation maxVal = new pathEvaluation(Integer.MIN_VALUE, 0);
-			bestMove = Move.UP; //default move
-			Move[] legalMoves = board.getLegalMovesForPlayer();
-			if(legalMoves.length > 0){
-				int boardsToEvaluatePerMove = boardsToEvaluate / legalMoves.length;
-				for(Move move : legalMoves){
-					board.makePlayerMove(move);
-					pathEvaluation moveEvaluation = opponentEvaluate(board, this.evaluator, boardsToEvaluatePerMove, 1, alpha, beta);
-					board.undoPlayerMove(move);
-					
-					if(alpha.compare(maxVal) < 0) alpha = maxVal;
-					if(moveEvaluation.compare(maxVal) > 0){
-						maxVal = moveEvaluation;
-						bestMove = move;
-					}
-				}	
-			}
+		pathEvaluation alpha = new pathEvaluation(Integer.MIN_VALUE, Integer.MAX_VALUE);
+		pathEvaluation beta = new pathEvaluation(Integer.MAX_VALUE, Integer.MIN_VALUE);
+		
+		pathEvaluation maxVal = new pathEvaluation(Integer.MIN_VALUE, 0);
+		bestMove = Move.UP; //default move
+		Move[] legalMoves = board.getLegalMovesForPlayer();
+		if(legalMoves.length > 0){
+			int boardsToEvaluatePerMove = boardsToEvaluate / legalMoves.length;
+			for(Move move : legalMoves){
+				board.makePlayerMove(move);
+				pathEvaluation moveEvaluation = opponentEvaluate(board, this.evaluator, boardsToEvaluatePerMove, 1, alpha, beta);
+				board.undoPlayerMove(move);
+				
+				if(alpha.compare(maxVal) < 0) alpha = maxVal;
+				if(moveEvaluation.compare(maxVal) > 0){
+					maxVal = moveEvaluation;
+					bestMove = move;
+				}
+			}	
 		}
 		
 		Stack<Move> s = new Stack<>();

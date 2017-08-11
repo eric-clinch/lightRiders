@@ -38,7 +38,7 @@ public class BotStarter {
 	}
 	
 	public void run(){
-		Bot bot = new Bot((GetMoves) new GetMovesABCacheTree((Evaluator) new ChamberEvaluator(), new botDepth()));
+		Bot bot = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst((Evaluator) new ChamberEvaluator(), new botDepth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 		
 		int timebank = 0;
 		int time_per_move = 0;
@@ -94,19 +94,17 @@ public class BotStarter {
 	}
 	
 	private static class botDepth implements GetSearchNumber {
-		private int previousNumber = 3;
+		private int previousNumber = 4;
 		private int previousTime = 10000;
-		private int previousTimeLost = -135;
+		private int previousTimeLost = -125;
 		
 		public  int apply(int time, int rounds, int numOfMoveCombinations){
 			int timeLost = previousTime - time;
 			
 			int res = previousNumber;
-			if(timeLost > 1000) res -= 2;
-			else if(timeLost > 0 && time < 1500) res -= 2;
-			else if(timeLost > 600) res--;
+			if(timeLost > 600) res--;
 			else if(timeLost > 0 && time < 3000) res--;
-			else if(timeLost + previousTimeLost < -270 || time >= 10000){
+			else if(timeLost + previousTimeLost < -250 || time >= 10000){
 				res++;
 			}
 			
