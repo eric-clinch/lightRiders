@@ -116,26 +116,26 @@ public class simulateGame {
 	}
 	
 	public static void main(String[] args){
-		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ControlEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-		
-		simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
-		ArrayList<Board> boards = res.boards;
-		
-		printBoards(boards);
+//		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//		Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//		
+//		simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
+//		ArrayList<Board> boards = res.boards;
+//		
+//		printBoards(boards);
 		
 //		ArrayList<tournamentResult> results = new ArrayList<tournamentResult>();
-//		for(int i = 7; i <= 12; i++){
-//			int threshold = i * i;
-//			int gamesToPlay = 300;
+//		for(int i = 2290; i <= 2710; i+=30){
+//			int threshold = i;
+//			int gamesToPlay = 100;
 //			int gamesWonByBot1 = 0;
 //			int gamesWonByBot0 = 0;
 //			int gamesTied = 0;
 //			int gamesTimedOutByBot0 = 0;
 //			int gamesTimedOutByBot1 = 0;
 //			for(int round = 0; round < gamesToPlay; round++){
-//				Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst((Evaluator) new ChamberEvaluator(), new bot0Depth()));
-//				Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerPruneTreeSize((Evaluator) new ChamberEvaluator(), new AdaptiveDepthWithTreeSize(), threshold));
+//				Bot bot0 = new Bot(new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//				Bot bot1 = new Bot(new GetMovesABCTKillerTreeSize(new ChamberEvaluator(), new AdaptiveDepthWithTreeSizeParameterized(960, threshold)), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 //				
 //				if(round % 2 == 0){
 //					simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
@@ -162,40 +162,40 @@ public class simulateGame {
 //			System.out.println("Games played: " + tres.gamesPlayed + " bot 0: " + tres.gamesWonByPlayer0 + " bot 0 timeouts: " + tres.gamesTimedOutByPlayer0 + " bot 1: " + tres.gamesWonByPlayer1 + " bot 1 timeouts: " + tres.gamesTimedOutByPlayer1 + " tied: " + tres.gamesTied + " threshold: " + tres.parameter);;
 //		}
 		
-//		int gamesToPlay = 100;
-//		int gamesWonByBot0 = 0;
-//		int gamesWonByBot1 = 0;
-//		int gamesTimedOutByBot0 = 0;
-//		int gamesTimedOutByBot1 = 0;
-//		int gamesTied = 0;
-//		for(int i = 0; i < gamesToPlay; i++){
-//			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-//			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerPartitionTreeSize((Evaluator) new ChamberEvaluator(), new AdaptiveDepthWithTreeSize()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-//			
-//			if(i % 2 == 0){
-//				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
-//				
-//				if(res.winner == -1) gamesTied++;
-//				else if(res.winner == 1) gamesWonByBot1++;
-//				else gamesWonByBot0++;
-//				if(res.bot0TimedOut) gamesTimedOutByBot0++;
-//				if(res.bot1TimedOut) gamesTimedOutByBot1++;
-//			} else {
-//				simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
-//				
-//				if(res.winner == -1) gamesTied++;
-//				else if(res.winner == 0) gamesWonByBot1++;
-//				else gamesWonByBot0++;
-//				if(res.bot0TimedOut) gamesTimedOutByBot1++;
-//				if(res.bot1TimedOut) gamesTimedOutByBot0++;
-//			}
-//		}
-//		System.out.println("Games played: " + gamesToPlay);
-//		System.out.println("Games won by bot 0: " + gamesWonByBot0);
-//		System.out.println("Games timed out by bot 0: " + gamesTimedOutByBot0);
-//		System.out.println("Games won by bot 1: " + gamesWonByBot1);
-//		System.out.println("Games timed out by bot 1: " + gamesTimedOutByBot1);
-//		System.out.println("Games tied: " + gamesTied);
+		int gamesToPlay = 100;
+		int gamesWonByBot0 = 0;
+		int gamesWonByBot1 = 0;
+		int gamesTimedOutByBot0 = 0;
+		int gamesTimedOutByBot1 = 0;
+		int gamesTied = 0;
+		for(int i = 0; i < gamesToPlay; i++){
+			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+			
+			if(i % 2 == 0){
+				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
+				
+				if(res.winner == -1) gamesTied++;
+				else if(res.winner == 1) gamesWonByBot1++;
+				else gamesWonByBot0++;
+				if(res.bot0TimedOut) gamesTimedOutByBot0++;
+				if(res.bot1TimedOut) gamesTimedOutByBot1++;
+			} else {
+				simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
+				
+				if(res.winner == -1) gamesTied++;
+				else if(res.winner == 0) gamesWonByBot1++;
+				else gamesWonByBot0++;
+				if(res.bot0TimedOut) gamesTimedOutByBot1++;
+				if(res.bot1TimedOut) gamesTimedOutByBot0++;
+			}
+		}
+		System.out.println("Games played: " + gamesToPlay);
+		System.out.println("Games won by bot 0: " + gamesWonByBot0);
+		System.out.println("Games timed out by bot 0: " + gamesTimedOutByBot0);
+		System.out.println("Games won by bot 1: " + gamesWonByBot1);
+		System.out.println("Games timed out by bot 1: " + gamesTimedOutByBot1);
+		System.out.println("Games tied: " + gamesTied);
 	}
 	
 	private static class tournamentResult {
@@ -349,9 +349,54 @@ public class simulateGame {
 			int res = previousDepth;
 			if(time < 1000 || timeLost > 600) res--;
 			else if(time < 3000 && timeLost > 0) res--;
-			else if (leafs > 2500) res--;
-			else if (leafs < 150) res += 2;
-			else if(leafs < 1000) res++;
+			else if (leafs > 2590) res--;
+			else if (leafs < 160) res += 2;
+			else if(leafs < 960) res++;
+			
+			res = Math.max(res, 3);
+			previousDepth = res;
+			return res;
+		}
+	}
+
+	private static class AdaptiveDepthWithTreeSizeParameterized implements GetSearchNumberWithTreeSize {
+
+		private int leafs;
+		private int previousTime = 10000;
+		private int previousDepth = 3;
+		private int lowerLeafThreshold;
+		private int doubleLowerLeafThreshold;
+		private int upperLeafThreshold;
+		
+		public AdaptiveDepthWithTreeSizeParameterized(int lowerLeafThreshold, int upperLeafThreshold){
+			this.lowerLeafThreshold = lowerLeafThreshold;
+			this.doubleLowerLeafThreshold = lowerLeafThreshold / 6;
+			this.upperLeafThreshold = upperLeafThreshold;
+		}
+		
+		public void setTreeLeafs(int treeLeafs){
+			this.leafs = treeLeafs;
+		}
+		
+		public  int apply(int time, int rounds, int numOfMoveCombinations){
+			int timeLost = previousTime - time;
+			previousTime = time;
+			
+//			int timeOnLastMove = (time == 10000) ? 0 : 200 + previousTime - time;
+//			previousTime = time;
+//			System.err.println();
+//			System.out.flush();
+//			System.err.flush();
+//			System.err.println("time on round " + (rounds - 1) + " : " + timeOnLastMove);
+//			System.err.println("round " + rounds + " leafs: " + leafs);
+//			System.err.flush();
+			
+			int res = previousDepth;
+			if(time < 1000 || timeLost > 600) res--;
+			else if(time < 3000 && timeLost > 0) res--;
+			else if (leafs > upperLeafThreshold) res--;
+			else if (leafs < doubleLowerLeafThreshold) res += 2;
+			else if(leafs < lowerLeafThreshold) res++;
 			
 			res = Math.max(res, 3);
 			previousDepth = res;
