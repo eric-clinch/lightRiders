@@ -6,21 +6,19 @@ import java.util.Stack;
 
 public class GetMovesABCTKillerFirst implements GetMoves{
 	
-	private Evaluator evaluator;
-	private GetSearchNumber getSearchDepth;
-	private static AscendingChildrenSorter ascendingChildrenSorter = new AscendingChildrenSorter();
-	private static DescendingChildrenSorter descendingChildrenSorter = new DescendingChildrenSorter();
-	private AscendingMoveSorter ascendingMoveSorter = new AscendingMoveSorter();
-	private DescendingMoveSorter descendingMoveSorter = new DescendingMoveSorter();
-	private int sortThreshold;
-	private int moveSortThreshold;
+	private final Evaluator evaluator;
+	private final GetSearchNumber getSearchDepth;
+	private static final AscendingChildrenSorter ascendingChildrenSorter = new AscendingChildrenSorter();
+	private static final DescendingChildrenSorter descendingChildrenSorter = new DescendingChildrenSorter();
+	private final AscendingMoveSorter ascendingMoveSorter = new AscendingMoveSorter();
+	private final DescendingMoveSorter descendingMoveSorter = new DescendingMoveSorter();
+	private static final int sortThreshold = 3;
+	private static final int moveSortThreshold = 3;
 	public CacheTree currentTree;
 	
 	public GetMovesABCTKillerFirst(Evaluator evaluator, GetSearchNumber getSearchDepth){
 		this.evaluator = evaluator;
 		this.getSearchDepth = getSearchDepth;
-		this.sortThreshold = 3;
-		this.moveSortThreshold = 3;
 		this.currentTree = null;
 	}
 	
@@ -152,13 +150,6 @@ public class GetMovesABCTKillerFirst implements GetMoves{
 		Object temp = array[putFirst];
 		array[putFirst] = array[0];
 		array[0] = temp;
-	}
-	
-	public static final boolean isArticulationPoint(Move[] legalMoves){
-		if(legalMoves.length != 2) return false;
-		Move move0 = legalMoves[0];
-		Move move1 = legalMoves[1];
-		return move0.drow == move1.drow || move0.dcol == move1.dcol;
 	}
 	
 	private static final class PathEvaluation{

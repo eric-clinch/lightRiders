@@ -38,11 +38,11 @@ public class simulateGame {
 		Random random = new Random();
 		long timePerMovePlayer = 200;
 		long timePerMoveOpponent = 200;
-		int timeFudge = 2; //used for matching the speed of the competition servers
+		double timeFudge = .5; //used for matching the speed of the competition servers
 		int playerRow = random.nextInt(Board.rows - 2) + 1;
 		int playerCol = random.nextInt((Board.cols / 2) - 2) + 1;
-//		int playerRow = 7;
-//		int playerCol = 4;
+//		int playerRow = 4;
+//		int playerCol = 3;
 		long playerTime = 10000;
 		int opponentRow = playerRow;
 		int opponentCol = Board.cols - playerCol - 1;
@@ -54,14 +54,14 @@ public class simulateGame {
 		long time = System.currentTimeMillis();
 		Move bot0Move = bot0.getMove(board, (int) playerTime, round, Move.UP);
 		Move lastBot0Move = bot0Move;
-		long elapsed = timeFudge * (System.currentTimeMillis() - time);
+		long elapsed = (long) (timeFudge * (double) (System.currentTimeMillis() - time));
 		playerTime -= elapsed;
 		System.out.println(round + " bot0 time: " + playerTime);
 		
 		time = System.currentTimeMillis();
 		Move bot1Move = bot1.getMove(board.toOpponentBoard(), (int) opponentTime, round, Move.UP);
 		Move lastBot1Move = bot1Move;
-		elapsed = timeFudge * (System.currentTimeMillis() - time);
+		elapsed = (long) (timeFudge * (double) (System.currentTimeMillis() - time));
 		opponentTime -= elapsed;
 		System.out.println(round + " bot1 time: " + opponentTime);
 		
@@ -77,13 +77,13 @@ public class simulateGame {
 			round++;
 			time = System.currentTimeMillis();
 			bot0Move = bot0.getMove(board, (int) playerTime, round, lastBot1Move);
-			elapsed = timeFudge * (System.currentTimeMillis() - time);
+			elapsed = (long) (timeFudge * (double) (System.currentTimeMillis() - time));
 			playerTime -= elapsed;
 			System.out.println(round + " bot0 time: " + playerTime);
 			
 			time = System.currentTimeMillis();
 			bot1Move = bot1.getMove(board.toOpponentBoard(), (int) opponentTime, round, lastBot0Move);
-			elapsed = timeFudge * (System.currentTimeMillis() - time);
+			elapsed = (long) (timeFudge * (double) (System.currentTimeMillis() - time));
 			opponentTime -= elapsed;
 			System.out.println(round + " bot1 time: " + opponentTime);
 			
@@ -117,7 +117,7 @@ public class simulateGame {
 	
 	public static void main(String[] args){
 //		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-//		Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 //		
 //		simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
 //		ArrayList<Board> boards = res.boards;
@@ -162,15 +162,15 @@ public class simulateGame {
 //			System.out.println("Games played: " + tres.gamesPlayed + " bot 0: " + tres.gamesWonByPlayer0 + " bot 0 timeouts: " + tres.gamesTimedOutByPlayer0 + " bot 1: " + tres.gamesWonByPlayer1 + " bot 1 timeouts: " + tres.gamesTimedOutByPlayer1 + " tied: " + tres.gamesTied + " threshold: " + tres.parameter);;
 //		}
 		
-		int gamesToPlay = 100;
+		int gamesToPlay = 300;
 		int gamesWonByBot0 = 0;
 		int gamesWonByBot1 = 0;
 		int gamesTimedOutByBot0 = 0;
 		int gamesTimedOutByBot1 = 0;
 		int gamesTied = 0;
 		for(int i = 0; i < gamesToPlay; i++){
-			Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+			Bot bot0 = new Bot((GetMoves) new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerTreeSize(new ChamberEvaluator(), new AdaptiveDepthWithTreeSize()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 			
 			if(i % 2 == 0){
 				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
