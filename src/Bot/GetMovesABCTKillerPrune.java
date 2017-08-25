@@ -21,7 +21,7 @@ public class GetMovesABCTKillerPrune implements GetMoves{
 	public GetMovesABCTKillerPrune(Evaluator evaluator, GetSearchNumber getSearchDepth, int pruneThreshold){
 		this.evaluator = evaluator;
 		this.getSearchDepth = getSearchDepth;
-		this.sortThreshold = 3;
+		this.sortThreshold = 4;
 		this.moveSortThreshold = 3;
 		this.pruneThreshold = pruneThreshold;
 		this.currentTree = null;

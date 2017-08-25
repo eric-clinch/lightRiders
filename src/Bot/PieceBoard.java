@@ -2,7 +2,7 @@ package Bot;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class PieceBoard implements Board{
+public class PieceBoard implements Board {
 	private enum Piece {
 		EMPTY, WALL, PLAYER, OPPONENT, FLOODED
 	}

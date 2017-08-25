@@ -30,17 +30,18 @@ public class simulateGame {
 		}
 	}
 	
-	public simulationResult playMatch(Bot bot0, Bot bot1){
+	public simulationResult playMatch(Bot bot0, Bot bot1, int bot0StartRow, int bot0StartCol){
 		ArrayList<Board> boards = new ArrayList<Board>();
 		ArrayList<Move> bot0Moves = new ArrayList<Move>();
 		ArrayList<Move> bot1Moves = new ArrayList<Move>();
 		
-		Random random = new Random();
 		long timePerMovePlayer = 200;
 		long timePerMoveOpponent = 200;
 		double timeFudge = .5; //used for matching the speed of the competition servers
-		int playerRow = random.nextInt(Board.rows - 2) + 1;
-		int playerCol = random.nextInt((Board.cols / 2) - 2) + 1;
+		int playerRow = bot0StartRow;
+		int playerCol = bot0StartCol;
+//		int playerRow = random.nextInt(Board.rows - 2) + 1;
+//		int playerCol = random.nextInt((Board.cols / 2) - 2) + 1;
 //		int playerRow = 4;
 //		int playerCol = 3;
 		long playerTime = 10000;
@@ -115,16 +116,30 @@ public class simulateGame {
 		return new simulationResult(boards, bot0Moves, bot1Moves, winner, false, false);
 	}
 	
+	public static Bot[] botFactory(){
+		Bot bot0 = new Bot(new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEndGameEvaluator(), 14));
+		Bot bot1 = new Bot(new GetMovesABCTKillerFirst2(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEndGameEvaluator(), 14));
+		
+		Bot[] res = {bot0, bot1};
+		return res;
+	}
+	
 	public static void main(String[] args){
-//		Bot bot0 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-//		Bot bot1 = new Bot((GetMoves) new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//		Bot[] bots = botFactory();
+//		Bot bot0 = bots[0];
+//		Bot bot1 = bots[1];
 //		
-//		simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
+//		Random random = new Random();
+//		int row = random.nextInt(Board.rows - 2) + 1;
+//		int col = random.nextInt((Board.cols / 2) - 2) + 1;
+//		
+//		simulationResult res = (new simulateGame()).playMatch(bot0, bot1, row, col);
 //		ArrayList<Board> boards = res.boards;
 //		
 //		printBoards(boards);
 		
 //		ArrayList<tournamentResult> results = new ArrayList<tournamentResult>();
+//		Random random = new Random();
 //		for(int i = 2290; i <= 2710; i+=30){
 //			int threshold = i;
 //			int gamesToPlay = 100;
@@ -136,9 +151,11 @@ public class simulateGame {
 //			for(int round = 0; round < gamesToPlay; round++){
 //				Bot bot0 = new Bot(new GetMovesABCacheTreeKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
 //				Bot bot1 = new Bot(new GetMovesABCTKillerTreeSize(new ChamberEvaluator(), new AdaptiveDepthWithTreeSizeParameterized(960, threshold)), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+//				int row = random.nextInt(Board.rows - 2) + 1;
+//				int col = random.nextInt((Board.cols / 2) - 2) + 1;
 //				
 //				if(round % 2 == 0){
-//					simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
+//					simulationResult res = (new simulateGame()).playMatch(bot0, bot1, row, col);
 //					
 //					if(res.winner == -1) gamesTied++;
 //					else if(res.winner == 1) gamesWonByBot1++;
@@ -146,7 +163,7 @@ public class simulateGame {
 //					if(res.bot0TimedOut) gamesTimedOutByBot0++;
 //					if(res.bot1TimedOut) gamesTimedOutByBot1++;
 //				} else {
-//					simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
+//					simulationResult res = (new simulateGame()).playMatch(bot1, bot0, row, col);
 //					
 //					if(res.winner == -1) gamesTied++;
 //					else if(res.winner == 0) gamesWonByBot1++;
@@ -162,35 +179,39 @@ public class simulateGame {
 //			System.out.println("Games played: " + tres.gamesPlayed + " bot 0: " + tres.gamesWonByPlayer0 + " bot 0 timeouts: " + tres.gamesTimedOutByPlayer0 + " bot 1: " + tres.gamesWonByPlayer1 + " bot 1 timeouts: " + tres.gamesTimedOutByPlayer1 + " tied: " + tres.gamesTied + " threshold: " + tres.parameter);;
 //		}
 		
-		int gamesToPlay = 300;
+		int gamesPlayed = 0;
 		int gamesWonByBot0 = 0;
 		int gamesWonByBot1 = 0;
 		int gamesTimedOutByBot0 = 0;
 		int gamesTimedOutByBot1 = 0;
 		int gamesTied = 0;
-		for(int i = 0; i < gamesToPlay; i++){
-			Bot bot0 = new Bot((GetMoves) new GetMovesABCTKillerFirst(new ChamberEvaluator(), new bot0Depth()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
-			Bot bot1 = new Bot((GetMoves) new GetMovesABCTKillerTreeSize(new ChamberEvaluator(), new AdaptiveDepthWithTreeSize()), new GetMovesEndGameBacktrack(new FloodEvaluator()));
+		for(int row = 1; row < 15; row++) for (int col = 1; col < 7; col++){
+			Bot[] bots = botFactory();
+			Bot bot0 = bots[0];
+			Bot bot1 = bots[1];
+			simulationResult res = (new simulateGame()).playMatch(bot0, bot1, row, col);
 			
-			if(i % 2 == 0){
-				simulationResult res = (new simulateGame()).playMatch(bot0, bot1);
-				
-				if(res.winner == -1) gamesTied++;
-				else if(res.winner == 1) gamesWonByBot1++;
-				else gamesWonByBot0++;
-				if(res.bot0TimedOut) gamesTimedOutByBot0++;
-				if(res.bot1TimedOut) gamesTimedOutByBot1++;
-			} else {
-				simulationResult res = (new simulateGame()).playMatch(bot1, bot0);
-				
-				if(res.winner == -1) gamesTied++;
-				else if(res.winner == 0) gamesWonByBot1++;
-				else gamesWonByBot0++;
-				if(res.bot0TimedOut) gamesTimedOutByBot1++;
-				if(res.bot1TimedOut) gamesTimedOutByBot0++;
-			}
+			if(res.winner == -1) gamesTied++;
+			else if(res.winner == 1) gamesWonByBot1++;
+			else gamesWonByBot0++;
+			if(res.bot0TimedOut) gamesTimedOutByBot0++;
+			if(res.bot1TimedOut) gamesTimedOutByBot1++;
+			gamesPlayed++;
+			
+			//play the mirrored match
+			bots = botFactory();
+			bot0 = bots[0];
+			bot1 = bots[1];
+			res = (new simulateGame()).playMatch(bot1, bot0, row, col);
+			
+			if(res.winner == -1) gamesTied++;
+			else if(res.winner == 0) gamesWonByBot1++;
+			else gamesWonByBot0++;
+			if(res.bot0TimedOut) gamesTimedOutByBot1++;
+			if(res.bot1TimedOut) gamesTimedOutByBot0++;
+			gamesPlayed++;
 		}
-		System.out.println("Games played: " + gamesToPlay);
+		System.out.println("Games played: " + gamesPlayed);
 		System.out.println("Games won by bot 0: " + gamesWonByBot0);
 		System.out.println("Games timed out by bot 0: " + gamesTimedOutByBot0);
 		System.out.println("Games won by bot 1: " + gamesWonByBot1);

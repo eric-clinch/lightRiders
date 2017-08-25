@@ -1,6 +1,6 @@
 package Bot;
 
-public class FloodEvaluator implements Evaluator {
+public class FloodEndGameEvaluator implements Evaluator {
 	
 	public int getMaxValue(){
 		return 256;

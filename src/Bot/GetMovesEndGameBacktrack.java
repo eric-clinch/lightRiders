@@ -5,9 +5,11 @@ import java.util.Stack;
 public class GetMovesEndGameBacktrack implements GetMovesEndGame {
 	
 	private Evaluator evaluator;
+	private int searchDepth;
 	
-	public GetMovesEndGameBacktrack(Evaluator evaluator){
+	public GetMovesEndGameBacktrack(Evaluator evaluator, int searchDepth){
 		this.evaluator = evaluator;
+		this.searchDepth = searchDepth;
 	}
 	
 	private int getBestMoveFillHelper(Board board, int recursions){
@@ -78,9 +80,9 @@ public class GetMovesEndGameBacktrack implements GetMovesEndGame {
 			System.err.println("backtrack filling with depth " + Integer.toString(partitionSpace));
 			return backtrackFill(board, partitionSpace);
 		}
-		int fillRecursions = 14;
-		System.err.println("filling with depth " + Integer.toString(fillRecursions));
-		Move bestMove = getBestMoveFill(board, fillRecursions);
+
+		System.err.println("filling with depth " + Integer.toString(searchDepth));
+		Move bestMove = getBestMoveFill(board, searchDepth);
 		Stack<Move> s = new Stack<>();
 		s.addElement(bestMove);
 		return s;
