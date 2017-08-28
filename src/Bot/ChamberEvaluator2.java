@@ -2,7 +2,7 @@ package Bot;
 
 import java.util.ArrayList;
 
-public class ChamberEvaluator implements Evaluator {
+public class ChamberEvaluator2 implements Evaluator {
 	
 	private static int cols = Board.cols;
 	
@@ -55,9 +55,10 @@ public class ChamberEvaluator implements Evaluator {
 		public boolean battleFront;
 		
 		public CellsAvailable(Cell[] board, int row, int col, CellType playerCellType, CellType opponentCellType, CellType opponentControlledCellType) {
-			expandingCells = new ArrayList<Cell>();
-			articulationMoves = new ArrayList<Move>();
-			controlledMoves = new ArrayList<Move>();
+			// initializing arrays with length 3 because there are generally at most 3 legal moves
+			expandingCells = new ArrayList<Cell>(3);
+			articulationMoves = new ArrayList<Move>(3);
+			controlledMoves = new ArrayList<Move>(3);
 			battleFront = false;
 			for(Move move : Move.ALLMOVES) {
 				int newRow = row + move.drow;
@@ -85,9 +86,9 @@ public class ChamberEvaluator implements Evaluator {
 	
 	private static final int countHelper(Cell cell, Cell[] board, ArrayList<Cell> articulationPoints) {
 		cell.visited = true;
-		int result = 1;
 		ArrayList<Move> searchMoves = cell.searchMoves;
 		int searchMovesSize = searchMoves.size();
+		int result = 256 + searchMovesSize;
 		for(int i = 0; i < searchMovesSize; i++) {
 			Move move = searchMoves.get(i);
 			Cell newCell = board[(cell.row + move.drow) * cols + cell.col + move.dcol]; //board access
@@ -104,9 +105,9 @@ public class ChamberEvaluator implements Evaluator {
 	
 	public static final int count(Cell cell, Cell[] board, ArrayList<Cell> articulationPoints) {
 		cell.visited = true;
-		int result = 1;
 		ArrayList<Move> searchMoves = cell.searchMoves;
 		int searchMovesSize = searchMoves.size();
+		int result = 256 + searchMovesSize;
 		for(int i = 0; i < searchMovesSize; i++) {
 			Move move = searchMoves.get(i);
 			Cell newCell = board[(cell.row + move.drow) * cols + cell.col + move.dcol];

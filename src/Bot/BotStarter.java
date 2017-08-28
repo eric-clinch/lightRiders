@@ -38,7 +38,7 @@ public class BotStarter {
 	}
 	
 	public void run(){
-		Bot bot = new Bot(new GetMovesABCTKillerFirst3(new ChamberEvaluator(), new botDepth()), new GetMovesEndGameBacktrack(new FloodEndGameEvaluator(), 14));
+		Bot bot = new Bot(new GetMovesABCTKillerFirst(new ChamberEvaluator(), new botDepth()), new GetMovesEndGameBacktrack(new FloodEndGameEvaluator(), 14));
 		
 		int timebank = 0;
 		int time_per_move = 0;

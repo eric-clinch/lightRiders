@@ -2,12 +2,12 @@ package Bot;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class PieceBoard implements Board {
+public class PieceBoard implements Board{
 	private enum Piece {
 		EMPTY, WALL, PLAYER, OPPONENT, FLOODED
 	}
 	
-	private Piece[][] board;
+	private Piece[] board;
 	public int rows;
 	public int cols;
 	private int playerRow;
@@ -32,7 +32,7 @@ public class PieceBoard implements Board {
 		String[] splitted = strBoard.split(",");
 		assert(splitted.length == rows * cols);
 		
-		this.board = new Piece[rows][cols];
+		this.board = new Piece[rows * cols];
 		this.playerRow = -1;
 		this.playerCol = -1;
 		this.opponentRow = -1;
@@ -41,7 +41,7 @@ public class PieceBoard implements Board {
 			for(int j = 0; j < cols; j++){
 				int index = i * cols + j;
 				String s = splitted[index];
-				this.board[i][j] = strToPiece(s, player, opponent);
+				this.board[index] = strToPiece(s, player, opponent);
 				if(s.equals(player)){
 					assert(this.playerRow == -1 && this.playerCol == -1);
 					this.playerRow = i;
@@ -64,44 +64,43 @@ public class PieceBoard implements Board {
 		this.opponentRow = opponentRow;
 		this.opponentCol = opponentCol;
 		
-		this.board = new Piece[rows][cols];
-		for(int i = 0; i < rows; i++){
-			for(int j = 0; j < cols; j++){
-				this.board[i][j] = Piece.EMPTY;
-			}
+		int len = rows * cols;
+		this.board = new Piece[len];
+		for(int i = 0; i < len; i++){
+			this.board[i] = Piece.EMPTY;
 		}
-		this.board[playerRow][playerCol] = Piece.PLAYER;
-		this.board[opponentRow][opponentCol] = Piece.OPPONENT;
+		this.board[playerRow * cols + playerCol] = Piece.PLAYER;
+		this.board[opponentRow * cols + opponentCol] = Piece.OPPONENT;
 	}
 	
-	private PieceBoard(Piece[][] board, int playerRow, int playerCol, int opponentRow, int opponentCol){
-		this.rows = board.length;
-		this.cols = board[0].length;
+	private PieceBoard(Piece[] board, int rows, int cols, int playerRow, int playerCol, int opponentRow, int opponentCol){
+		this.rows = rows;
+		this.cols = cols;
 		this.playerRow = playerRow;
 		this.playerCol = playerCol;
 		this.opponentRow = opponentRow;
 		this.opponentCol = opponentCol;
 		this.board = board;
-		assert(board[playerRow][playerCol] == Piece.PLAYER);
-		assert(board[opponentRow][opponentCol] == Piece.OPPONENT);
+		assert(board[playerRow * cols + playerCol] == Piece.PLAYER);
+		assert(board[opponentRow * cols + opponentCol] == Piece.OPPONENT);
 	}
 	
 	public boolean isLegalMoveForPlayer(Move move){
 		int newRow = playerRow + move.drow;
 		int newCol = playerCol + move.dcol;
-		if(newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols || board[newRow][newCol] != Piece.EMPTY) return false;
+		if(newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols || board[newRow * cols + newCol] != Piece.EMPTY) return false;
 		return true;
 	}
 	
 	public boolean isLegalMoveForOpponent(Move move){
 		int newRow = opponentRow + move.drow;
 		int newCol = opponentCol + move.dcol;
-		if(newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols || board[newRow][newCol] != Piece.EMPTY) return false;
+		if(newRow < 0 || newRow >= rows || newCol < 0 || newCol >= cols || board[newRow * cols + newCol] != Piece.EMPTY) return false;
 		return true;
 	}
 	
 	public Move[] getLegalMovesForPlayer(){
-		ArrayList<Move> legalMoves = new ArrayList<>(4);
+		ArrayList<Move> legalMoves = new ArrayList<>(3); // initializing with length 3 because there are generally at most 3 legal moves
 		for(Move m : Move.ALLMOVES){
 			if(isLegalMoveForPlayer(m)) legalMoves.add(m);
 		}
@@ -110,7 +109,7 @@ public class PieceBoard implements Board {
 	}
 	
 	public Move[] getLegalMovesForOpponent(){
-		ArrayList<Move> legalMoves = new ArrayList<>(4);
+		ArrayList<Move> legalMoves = new ArrayList<>(3); // initializing with length 3 because there are generally at most 3 legal moves
 		for(Move m : Move.ALLMOVES){
 			if(isLegalMoveForOpponent(m)) legalMoves.add(m);
 		}
@@ -121,8 +120,8 @@ public class PieceBoard implements Board {
 	public void makePlayerMove(Move move){
 		int newRow = playerRow + move.drow;
 		int newCol = playerCol + move.dcol;
-		board[newRow][newCol] = Piece.PLAYER;
-		board[playerRow][playerCol] = Piece.WALL;
+		board[newRow * cols + newCol] = Piece.PLAYER;
+		board[playerRow * cols + playerCol] = Piece.WALL;
 		playerRow = newRow;
 		playerCol = newCol;
 	}
@@ -130,8 +129,8 @@ public class PieceBoard implements Board {
 	public void undoPlayerMove(Move move){
 		int oldRow = playerRow - move.drow;
 		int oldCol = playerCol - move.dcol;
-		board[oldRow][oldCol] = Piece.PLAYER;
-		board[playerRow][playerCol] = Piece.EMPTY;
+		board[oldRow * cols + oldCol] = Piece.PLAYER;
+		board[playerRow * cols + playerCol] = Piece.EMPTY;
 		playerRow = oldRow;
 		playerCol = oldCol;
 	}
@@ -139,8 +138,8 @@ public class PieceBoard implements Board {
 	public void makeOpponentMove(Move move){
 		int newRow = opponentRow + move.drow;
 		int newCol = opponentCol + move.dcol;
-		board[newRow][newCol] = Piece.OPPONENT;
-		board[opponentRow][opponentCol] = Piece.WALL;
+		board[newRow * cols + newCol] = Piece.OPPONENT;
+		board[opponentRow * cols + opponentCol] = Piece.WALL;
 		opponentRow = newRow;
 		opponentCol = newCol;
 	}
@@ -148,8 +147,8 @@ public class PieceBoard implements Board {
 	public void undoOpponentMove(Move move){
 		int oldRow = opponentRow - move.drow;
 		int oldCol = opponentCol - move.dcol;
-		board[oldRow][oldCol] = Piece.OPPONENT;
-		board[opponentRow][opponentCol] = Piece.EMPTY;
+		board[oldRow * cols + oldCol] = Piece.OPPONENT;
+		board[opponentRow * cols + opponentCol] = Piece.EMPTY;
 		opponentRow = oldRow;
 		opponentCol = oldCol;
 	}
@@ -163,31 +162,28 @@ public class PieceBoard implements Board {
 	}
 	
 	public void placeFlood(int row, int col){
-		this.board[row][col] = Piece.FLOODED;
+		this.board[row * cols + col] = Piece.FLOODED;
 	}
 	
 	public boolean floodable(int row, int col){
 		return (row >= 0 && row < rows &&
 				col >= 0 && col < cols &&
-				board[row][col] == Piece.EMPTY);
+				board[row * cols + col] == Piece.EMPTY);
 	}
 	
 	public boolean isFlooded(int row, int col){
-		return board[row][col] == Piece.FLOODED;
+		return board[row * cols + col] == Piece.FLOODED;
 	}
 	
 	public int isAvailable(int row, int col){
 		return (row >= 0 && row < rows &&
 				col >= 0 && col < cols &&
-				board[row][col] == Piece.EMPTY) ? 1 : 0;
+				board[row * cols + col] == Piece.EMPTY) ? 1 : 0;
 	}
 	
 	public PieceBoard deepcopy(){
-		final Piece[][] result = new Piece[board.length][];
-		for(int i = 0; i < board.length; i++){
-			result[i] = Arrays.copyOf(board[i], board.length);
-		}
-		return new PieceBoard(result, playerRow, playerCol, opponentRow, opponentCol);
+		final Piece[] result = Arrays.copyOf(board, board.length);
+		return new PieceBoard(result, rows, cols, playerRow, playerCol, opponentRow, opponentCol);
 	}
 	
 	private char PieceToChar(Piece piece){
@@ -201,9 +197,9 @@ public class PieceBoard implements Board {
 	
 	public String toString(){
 		String res = "";
-		for(Piece[] row : this.board){
-			for(Piece piece : row){
-				res = res + PieceToChar(piece) + ' ';
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < cols; j++){
+				res = res + PieceToChar(board[i * cols + j]) + ' ';
 			}
 			res = res + '\n';
 		}
@@ -212,15 +208,15 @@ public class PieceBoard implements Board {
 	
 	public PieceBoard toOpponentBoard(){
 		PieceBoard copied = this.deepcopy();
-		Piece[][] newBoard = copied.board;
-		newBoard[playerRow][playerCol] = Piece.OPPONENT;
-		newBoard[opponentRow][opponentCol] = Piece.PLAYER;
+		Piece[] newBoard = copied.board;
+		newBoard[playerRow * cols + playerCol] = Piece.OPPONENT;
+		newBoard[opponentRow * cols + opponentCol] = Piece.PLAYER;
 		
-		return new PieceBoard(newBoard, opponentRow, opponentCol, playerRow, playerCol);
+		return new PieceBoard(newBoard, rows, cols, opponentRow, opponentCol, playerRow, playerCol);
 	}
 	
 	private CellType getCellType(int row, int col){
-		Piece p = board[row][col];
+		Piece p = board[row * cols + col];
 		if(p == Piece.EMPTY) return CellType.UNCONTROLLED;
 		else if(p == Piece.WALL) return CellType.WALL;
 		else if(p == Piece.PLAYER) return CellType.PLAYER;
